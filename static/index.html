@@ -1,0 +1,3103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PriceZ Agents - AI 3D Office & Autonomous Studio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- 3D WebGL Libraries (Offline & High Performance) -->
+  <script src="/static/libs/three.min.js"></script>
+  <script src="/static/libs/OrbitControls.js"></script>
+  <script src="/static/libs/tween.umd.js"></script>
+  
+  <!-- PriceZ 3D Office Simulation Engine -->
+  <script src="/static/js/office-3d.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            office: {
+              950: '#070b14',
+              900: '#0c1322',
+              850: '#111a30',
+              800: '#162240',
+              700: '#20315a',
+            },
+            cyanGlow: '#00f2fe',
+            blueGlow: '#4facfe',
+            neonGreen: '#10b981'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #070b14;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.22) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.18) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(88, 28, 135, 0.16) 0px, transparent 50%);
+      background-attachment: fixed;
+      font-family: 'Cairo', sans-serif;
+      user-select: none;
+      overflow-x: hidden;
+    }
+
+    /* Glassmorphism Classes */
+    .glass-panel {
+      background: rgba(16, 26, 48, 0.68);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(56, 189, 248, 0.14);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+    }
+
+    .glass-panel-elevated {
+      background: rgba(22, 34, 64, 0.82);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      box-shadow: 0 14px 40px -10px rgba(0, 242, 254, 0.2);
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(11, 19, 34, 0.8);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.65);
+    }
+
+    /* 3D Canvas Viewport Container */
+    #office-3d-viewport {
+      outline: none;
+      user-select: none;
+    }
+
+    #office-3d-viewport canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      outline: none;
+    }
+
+    /* Striped animated progress bar */
+    .progress-bar-striped {
+      background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.2) 75%, transparent 75%, transparent);
+      background-size: 1rem 1rem;
+      animation: progress-animation 1s linear infinite;
+    }
+
+    @keyframes progress-animation {
+      0% { background-position: 1rem 0; }
+      100% { background-position: 0 0; }
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+  <!-- ========================================================================= -->
+  <!-- TOP APP BAR (Window Title & Header) -->
+  <!-- ========================================================================= -->
+  <header class="w-full glass-panel border-b border-sky-500/20 px-4 py-2.5 flex items-center justify-between sticky top-0 z-50">
+    <!-- Brand / Logo: PriceZ Agents -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/30 ring-2 ring-sky-400/40">
+        <span class="text-xl">👑</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-black tracking-tight bg-gradient-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent">
+            PriceZ Agents
+          </h1>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">
+            3D OFFICE v3.0
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 -mt-1 font-medium">Real Interactive 3D Virtual AI Office & Autonomous Studio</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="hidden md:flex items-center gap-1.5 bg-office-900/90 p-1.5 rounded-2xl border border-sky-500/20 shadow-inner">
+      <button onclick="switchTab('office')" id="nav-office" class="nav-tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-600/30 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>المكتب الافتراضي 3D</span>
+      </button>
+
+      <button onclick="switchTab('preview')" id="nav-preview" class="nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        <span class="text-sm">🖥️</span>
+        <span>المعاينة المباشرة (Live)</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+
+      <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        <span>المهام والتشغيل</span>
+      </button>
+
+      <button onclick="switchTab('ide')" id="nav-ide" class="nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        <span>محرر الأكواد</span>
+      </button>
+
+      <button onclick="switchTab('terminal')" id="nav-terminal" class="nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>الطرفية</span>
+      </button>
+
+      <button onclick="switchTab('sync')" id="nav-sync" class="nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span>المزامنة</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>الإعدادات</span>
+      </button>
+    </nav>
+
+    <!-- Top Right: Connection & User Profile -->
+    <div class="flex items-center gap-3">
+      <!-- Status Indicator -->
+      <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>متصل</span>
+      </div>
+
+      <!-- Push Notification Bell Toggle Button -->
+      <button id="btn-toggle-notifications" onclick="togglePushNotifications()" title="إشعارات المتصفح الفورية للمهام والتسليم" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-office-900 border border-slate-700 hover:border-sky-400 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer">
+        <span id="notif-bell-icon">🔔</span>
+        <span id="notif-bell-status" class="hidden md:inline">الإشعارات</span>
+      </button>
+
+      <!-- User Profile Dropdown Component -->
+      <div class="relative">
+        <button onclick="toggleUserDropdown()" class="flex items-center gap-3 pr-2 border-r border-slate-700/50 hover:opacity-90 transition-all focus:outline-none cursor-pointer">
+          <div class="text-right">
+            <div id="top-user-name" class="text-xs font-bold text-slate-100">PriceZ Admin</div>
+            <div id="top-user-role" class="text-[10px] text-sky-400 font-medium">مدير النظام (Admin)</div>
+          </div>
+          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-400 to-sky-500 p-0.5 shadow-md relative">
+            <img id="top-user-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150" alt="Avatar" class="w-full h-full object-cover rounded-full">
+            <span id="top-user-key-badge" title="تم تفعيل مفتاح الـ API المخصص" class="w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-office-950 absolute -bottom-0.5 -left-0.5"></span>
+          </div>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div id="user-profile-menu" class="hidden absolute left-0 mt-2 w-64 glass-panel-elevated rounded-2xl p-2.5 border border-sky-500/30 shadow-2xl z-50 text-xs space-y-1.5 backdrop-blur-2xl">
+          <div class="p-2 border-b border-slate-700/60 flex items-center justify-between">
+            <div>
+              <div id="menu-user-name" class="font-bold text-white">PriceZ Admin</div>
+              <div id="menu-user-username" class="text-[10px] text-sky-400 font-mono">@admin</div>
+            </div>
+            <span id="menu-user-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              مدير
+            </span>
+          </div>
+          <button onclick="openPersonalAPISettings()" class="w-full p-2 rounded-xl text-right text-slate-200 hover:text-white hover:bg-sky-500/20 flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2"><span>🔑</span><span>مفتاح الـ API الخاص بي</span></span>
+            <span id="menu-key-status" class="text-[10px] text-emerald-400 font-bold">مخصص</span>
+          </button>
+          <button onclick="openUserManagementModal()" class="w-full p-2 rounded-xl text-right text-slate-200 hover:text-white hover:bg-purple-500/20 flex items-center justify-between transition-all">
+            <span class="flex items-center gap-2"><span>👥</span><span>إدارة المستخدمين وصلاحيات الفريق</span></span>
+            <span id="menu-users-count" class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-bold">فريق العمل</span>
+          </button>
+          <button onclick="openAuthModal()" class="w-full p-2 rounded-xl text-right text-slate-200 hover:text-white hover:bg-sky-500/10 flex items-center gap-2 transition-all">
+            <span>🔄</span><span>تبديل الحساب / تسجيل الدخول</span>
+          </button>
+          <button onclick="logoutUser()" class="w-full p-2 rounded-xl text-right text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 flex items-center gap-2 transition-all">
+            <span>🚪</span><span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE LAYOUT (Left Sidebar + Expanded Full-Width Center Stage) -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- 1. LEFT NAVIGATION SIDEBAR -->
+    <aside class="w-20 glass-panel border-r border-sky-500/15 flex flex-col items-center py-6 justify-between shrink-0 hidden sm:flex">
+      <!-- Nav Icons -->
+      <div class="flex flex-col items-center gap-5 w-full">
+        <button onclick="switchTab('office')" title="المكتب الافتراضي 3D" class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-sky-400 bg-sky-500/15 border border-sky-400/30 shadow-lg shadow-sky-500/20 transition-all">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="text-[9px] mt-0.5 font-bold">الرئيسية</span>
+        </button>
+
+        <button onclick="switchTab('preview')" title="المعاينة المباشرة (Live Preview)" class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <span class="text-lg">🖥️</span>
+          <span class="text-[9px] mt-0.5">المعاينة</span>
+        </button>
+
+        <button onclick="openEmployeesRosterModal()" title="تسمية وتخصيص الموظفين" class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <span class="text-lg">👥</span>
+          <span class="text-[9px] mt-0.5">الموظفين</span>
+        </button>
+
+        <button onclick="switchTab('tasks')" title="المهام" class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          <span class="text-[9px] mt-0.5">المهام</span>
+        </button>
+
+        <button onclick="openReportsModal()" title="التقارير" class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span class="text-[9px] mt-0.5">التقارير</span>
+        </button>
+
+        <button onclick="switchTab('settings')" title="الإعدادات" class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+          <span class="text-[9px] mt-0.5">الإعدادات</span>
+        </button>
+      </div>
+
+      <!-- Bottom Branding Card: PriceZ Agents -->
+      <div class="w-14 h-16 rounded-2xl bg-gradient-to-b from-sky-500/10 to-indigo-600/20 border border-sky-400/30 flex flex-col items-center justify-center p-1 text-center shadow-lg">
+        <span class="text-amber-400 text-xs">👑</span>
+        <span class="text-[9px] font-black text-sky-300">PriceZ</span>
+        <span class="text-[7px] text-slate-400">Agents!</span>
+      </div>
+    </aside>
+
+    <!-- 2. EXPANDED FULL-WIDTH CENTER STAGE (3D Virtual Office or Active Tab) -->
+    <main class="flex-1 flex flex-col overflow-y-auto p-4 gap-4">
+
+      <!-- =================================================================== -->
+      <!-- TAB 1: REAL INTERACTIVE 3D VIRTUAL AI OFFICE (DEFAULT MAIN SCREEN) -->
+      <!-- =================================================================== -->
+      <div id="tab-office-view" class="flex flex-col gap-4">
+
+        <!-- Top Statistics Ribbon (Real-Time Dynamic Metrics from Backend - No Fake Data!) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <!-- Card 1: مهام نشطة -->
+          <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between hover:border-sky-400/40 transition-all">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-md">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-white font-mono" id="stat-active-tasks">0</div>
+                <div class="text-xs text-slate-400 font-semibold">مهام نشطة</div>
+              </div>
+            </div>
+            <div id="stat-active-badge" class="text-xs font-bold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-slate-700">
+              ● هادئ
+            </div>
+          </div>
+
+          <!-- Card 2: وكلاء متاحين -->
+          <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between hover:border-purple-400/40 transition-all">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-purple-500/15 border border-purple-400/30 flex items-center justify-center text-purple-400 shadow-md">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-white font-mono" id="stat-agents-count">6</div>
+                <div class="text-xs text-slate-400 font-semibold">وكلاء متاحين</div>
+              </div>
+            </div>
+            <div class="text-xs font-bold text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
+              طاقم جاهز
+            </div>
+          </div>
+
+          <!-- Card 3: مهام مكتملة -->
+          <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between hover:border-emerald-400/40 transition-all">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-md">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-white font-mono" id="stat-completed-tasks">0</div>
+                <div class="text-xs text-slate-400 font-semibold">مهام مكتملة</div>
+              </div>
+            </div>
+            <div class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              سجل موثق
+            </div>
+          </div>
+
+          <!-- Card 4: مهام قيد التنفيذ -->
+          <div class="glass-panel p-3.5 rounded-2xl flex items-center justify-between hover:border-amber-400/40 transition-all">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-md">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <div class="text-2xl font-black text-white font-mono" id="stat-pending-tasks">0</div>
+                <div class="text-xs text-slate-400 font-semibold">مهام قيد التنفيذ</div>
+              </div>
+            </div>
+            <div class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+              مباشر
+            </div>
+          </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- THE REAL INTERACTIVE 3D VIRTUAL OFFICE VIEWPORT -->
+        <!-- =================================================================== -->
+        <div class="relative w-full h-[600px] md:h-[680px] rounded-2xl overflow-hidden shadow-2xl border border-sky-500/25 group bg-office-950">
+          
+          <!-- 3D Canvas Mount Point -->
+          <div id="office-3d-viewport" class="w-full h-full"></div>
+
+          <!-- 3D Control Bar: Top Left Quick Actions -->
+          <div class="absolute top-4 left-4 z-40 flex items-center gap-2">
+            <button onclick="openAssignTaskModal('all')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-sky-500/30 backdrop-blur-md transition-all">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>توزيع مهمة في المكتب</span>
+            </button>
+            <button onclick="openEmployeesRosterModal()" class="px-3.5 py-2 rounded-xl bg-office-950/85 hover:bg-office-900 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center gap-1.5 backdrop-blur-md transition-all shadow-md">
+              <span>✏️</span>
+              <span>تسمية الموظفين</span>
+            </button>
+            <div class="px-2.5 py-2 rounded-xl bg-office-950/80 border border-sky-500/30 text-sky-300 text-[11px] font-mono flex items-center gap-1.5 backdrop-blur-md shadow-md">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>60 FPS WebGL 3D</span>
+            </div>
+          </div>
+
+          <!-- 3D Camera Preset Navigation Toolbar: Top Right -->
+          <div class="absolute top-4 right-4 z-40 flex flex-wrap items-center gap-1.5 bg-office-950/85 p-1.5 rounded-2xl border border-sky-500/25 backdrop-blur-md shadow-2xl">
+            <button onclick="window.office3d.setCameraPreset('overview')" class="px-2.5 py-1 rounded-xl text-xs font-bold text-sky-300 hover:text-white hover:bg-sky-500/20 transition-all flex items-center gap-1">
+              <span>🏢</span><span>كامل المكتب</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('sales')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>💼</span><span>المبيعات</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('support')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>🎧</span><span>الدعم</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('research')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>🔍</span><span>البحث</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('content')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>✍️</span><span>المحتوى</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('report')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>📊</span><span>التقارير</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('architect')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>🏛️</span><span>المعمارية</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('coffee')" class="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1">
+              <span>☕</span><span>الاستراحة</span>
+            </button>
+            <button onclick="window.office3d.setCameraPreset('overview')" title="إعادة ضبط الكاميرا" class="w-7 h-7 rounded-xl bg-white/10 text-slate-300 hover:text-white flex items-center justify-center text-xs">
+              ⟳
+            </button>
+          </div>
+
+          <!-- Bottom Camera Guide & Interaction Hint -->
+          <div class="absolute bottom-3 inset-x-4 z-40 pointer-events-none flex items-center justify-between text-[11px] text-slate-400 bg-office-950/80 px-4 py-2 rounded-xl border border-sky-500/20 backdrop-blur-md shadow-lg">
+            <div class="flex items-center gap-2">
+              <span class="text-sky-400 font-bold">🖱️ تحكم بالكاميرا 3D:</span>
+              <span>اسحب بالماوس للتدوير (Orbit) • عجلة الفأرة للتكبير (Zoom) • زر الفأرة الأيمن للتحريك (Pan)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400 font-bold">💡 تفاعل:</span>
+              <span>انقر على أي شخصية أو مكتب لفتح لوحة التحكم والتكليفات المباشرة</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- BOTTOM DASHBOARD: 3 PANELS (Quick Actions, Real Recent Tasks, System Activity) -->
+        <!-- =================================================================== -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          <!-- Panel 1: إجراءات سريعة (Quick Actions) -->
+          <div class="glass-panel p-4 rounded-2xl flex flex-col justify-between">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-amber-400">⚡</span>
+              <h3 class="text-sm font-bold text-white">إجراءات سريعة</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button onclick="openEmployeesRosterModal()" class="p-3 rounded-xl bg-office-900/90 border border-purple-500/20 hover:border-purple-400/50 flex items-center gap-2 text-xs font-bold text-slate-200 hover:text-white transition-all">
+                <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">✏️</span>
+                <span>تسمية الموظفين</span>
+              </button>
+
+              <button onclick="openAssignTaskModal('all')" class="p-3 rounded-xl bg-office-900/90 border border-emerald-500/20 hover:border-emerald-400/50 flex items-center gap-2 text-xs font-bold text-slate-200 hover:text-white transition-all">
+                <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">📋</span>
+                <span>توزيع مهام</span>
+              </button>
+
+              <button onclick="openReportsModal()" class="p-3 rounded-xl bg-office-900/90 border border-blue-500/20 hover:border-blue-400/50 flex items-center gap-2 text-xs font-bold text-slate-200 hover:text-white transition-all">
+                <span class="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">📊</span>
+                <span>عرض التقارير</span>
+              </button>
+
+              <button onclick="openAddAgentModal()" class="p-3 rounded-xl bg-office-900/90 border border-sky-500/20 hover:border-sky-400/50 flex items-center gap-2 text-xs font-bold text-slate-200 hover:text-white transition-all">
+                <span class="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">+</span>
+                <span>إضافة موظف</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Panel 2: المهام الأخيرة (Real Recent Tasks - No Mock Data!) -->
+          <div class="glass-panel p-4 rounded-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sky-400">⏱️</span>
+                <h3 class="text-sm font-bold text-white">المهام الأخيرة</h3>
+              </div>
+              <button onclick="switchTab('tasks')" class="text-xs text-sky-400 hover:underline font-semibold">عرض الكل</button>
+            </div>
+            
+            <div id="recent-tasks-list" class="space-y-2 overflow-y-auto max-h-36 pr-1 text-xs">
+              <div class="p-3 rounded-xl bg-office-900/60 border border-slate-800 text-slate-500 text-center">
+                لا توجد مهام سابقة حتى الآن. انقر على "توزيع مهام" للبدء.
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel 3: نشاط النظام (System Activity Log) -->
+          <div class="glass-panel p-4 rounded-2xl flex flex-col justify-between">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-emerald-400">📈</span>
+              <h3 class="text-sm font-bold text-white">نشاط النظام</h3>
+            </div>
+            
+            <div class="space-y-2 overflow-y-auto max-h-36 pr-1 text-xs" id="system-activity-feed">
+              <div class="flex items-center justify-between p-2 rounded-xl bg-office-900/60 border border-slate-800">
+                <div class="flex items-center gap-2 truncate">
+                  <span class="text-emerald-400">✓</span>
+                  <span class="text-slate-200 truncate">تم تشغيل محرك PriceZ Agents بنجاح</span>
+                </div>
+                <span class="text-slate-400 text-[10px] shrink-0">الآن</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB: LIVE PROJECT PREVIEW & RUNNER (تشغيل ومعاينة المشروع لايف) -->
+      <!-- =================================================================== -->
+      <div id="tab-preview-view" class="hidden flex flex-col gap-3 h-[calc(100vh-135px)]">
+        <!-- Browser Mockup Control Bar -->
+        <div class="glass-panel p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shrink-0 border border-sky-500/25">
+          <!-- Window Controls & Project Switcher -->
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5 pl-2 border-l border-slate-700/60">
+              <span class="w-3 h-3 rounded-full bg-rose-500 inline-block shadow"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-500 inline-block shadow"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow"></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-400 font-bold">المشروع النشط:</label>
+              <select id="preview-project-select" onchange="changePreviewProject(this.value)" class="bg-office-900 border border-sky-500/30 text-white rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none">
+                <option value="default_project">default_project (الافتراضي)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Address Bar (URL Bar) -->
+          <div class="flex-1 max-w-lg mx-2 flex items-center bg-office-950 border border-sky-500/30 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-300 shadow-inner">
+            <span class="text-emerald-400 font-bold ml-2 shrink-0">🔒 LIVE:</span>
+            <span id="preview-url-display" class="truncate text-sky-300">/api/projects/default_project/preview</span>
+          </div>
+
+          <!-- Viewport Switches & Actions -->
+          <div class="flex items-center gap-2">
+            <!-- Viewport device selector -->
+            <div class="flex items-center bg-office-900 p-1 rounded-xl border border-slate-700 text-xs">
+              <button onclick="setPreviewDevice('desktop')" id="btn-device-desktop" class="px-2.5 py-1 rounded-lg bg-sky-600 text-white font-bold transition-all" title="شاشة سطح المكتب">💻 ديسكتوب</button>
+              <button onclick="setPreviewDevice('tablet')" id="btn-device-tablet" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all" title="شاشة تابلت (768px)">📱 تابلت</button>
+              <button onclick="setPreviewDevice('mobile')" id="btn-device-mobile" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all" title="شاشة جوال (375px)">📱 جوال</button>
+            </div>
+
+            <button onclick="reloadPreviewFrame()" class="p-2 rounded-xl bg-office-900 hover:bg-office-850 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1 shadow" title="إعادة تحميل المعاينة">
+              <span>🔄</span>
+            </button>
+
+            <button onclick="openPreviewInNewTab()" class="p-2 rounded-xl bg-office-900 hover:bg-office-850 border border-slate-700 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1 shadow" title="فتح المعاينة في نافذة مستقلة">
+              <span>↗️</span>
+            </button>
+
+            <button onclick="startProjectLiveServer()" id="btn-preview-run" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all">
+              <span>▶️</span>
+              <span>تشغيل السيرفر</span>
+            </button>
+
+            <button onclick="stopProjectLiveServer()" id="btn-preview-stop" class="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold hidden flex items-center gap-1.5 shadow-md transition-all">
+              <span>⏹️</span>
+              <span>إيقاف السيرفر</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Frame Viewport Area with Centered Responsive Shell -->
+        <div class="flex-1 rounded-2xl overflow-hidden glass-panel border border-sky-500/20 flex items-center justify-center p-3 bg-office-950/80 relative">
+          <div id="preview-frame-wrapper" class="w-full h-full transition-all duration-300 rounded-xl overflow-hidden shadow-2xl border border-slate-800 bg-white">
+            <iframe id="live-preview-iframe" src="/api/projects/default_project/preview" class="w-full h-full border-0"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 2: TASKS & AUTONOMOUS SPRINT EXECUTION -->
+      <!-- =================================================================== -->
+      <div id="tab-tasks-view" class="hidden flex flex-col gap-4">
+        <!-- Task Launcher Card -->
+        <div class="glass-panel p-5 rounded-2xl flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🚀</span>
+              <h2 class="text-base font-bold text-white">إطلاق مهمة جديدة لطاقم الوكلاء</h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-xs text-slate-400 font-semibold">توجيه المهمة إلى:</label>
+              <select id="task-target-select" class="bg-office-900 border border-sky-500/30 text-white rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none">
+                <option value="all">🌟 كامل طاقم المكتب الافتراضي (سبرنت شامل)</option>
+                <option value="sales">💼 Sales Agent (المبيعات والتسويق)</option>
+                <option value="support">🎧 Support Agent (الدعم الفني والخدمة)</option>
+                <option value="research">🔍 Research Agent (البحث والتحليل)</option>
+                <option value="content">✍️ Content Agent (المحتوى والوثائق)</option>
+                <option value="report">📊 Report Agent (التقارير والإحصائيات)</option>
+                <option value="architect">🏛️ Architect & DevOps (المعمار والبرمجة)</option>
+              </select>
+            </div>
+          </div>
+
+          <textarea id="task-prompt-input" rows="3" placeholder="صف المهمة أو المشروع أو التكليف المطلوب تنفيذه بدقة..." class="w-full bg-office-900/90 border border-sky-500/20 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-all"></textarea>
+
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2 text-xs text-slate-400">
+              <span>أمثلة سريعة:</span>
+              <button onclick="setSamplePrompt('أريد بناء نظام اتصال مباشر بماكينة بصمة ZKTeco مع واجهة ويب')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-sky-300">ماكينة بصمة</button>
+              <button onclick="setSamplePrompt('دراسة تسويقية لأسعار منتجات التجارة الإلكترونية في الخليج')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-emerald-300">دراسة تسويقية</button>
+              <button onclick="setSamplePrompt('كتابة أدلة دعم فني وتدريب موظفي خدمة العملاء')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-purple-300">دليل دعم</button>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button onclick="stopWorkflow()" id="btn-stop-task" class="hidden px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition-all flex items-center gap-1.5">
+                <span>🛑</span>
+                <span>إيقاف المهمة</span>
+              </button>
+              <button onclick="startWorkflow()" id="btn-start-task" class="px-6 py-2 rounded-xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-sky-500/30 transition-all flex items-center gap-2">
+                <span>🚀</span>
+                <span>بدء التنفيذ في المكتب</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry & Live Multi-Agent Output -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Terminal Feed -->
+          <div class="glass-panel p-4 rounded-2xl flex flex-col h-96">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                <h3 class="text-xs font-bold text-white">بث التفكير اللحظي (Telemetry Stream)</h3>
+              </div>
+              <button onclick="clearTelemetry()" class="text-[10px] text-slate-400 hover:text-white">مسح السجل</button>
+            </div>
+            <div id="tasks-telemetry-feed" class="flex-1 overflow-y-auto font-mono text-xs p-3 space-y-2 text-slate-300 bg-office-950/80 rounded-xl mt-3 border border-slate-800/80">
+              <div class="text-slate-500">// محرك الوكلاء الذاتي جاهز... بانتظار توجيهات المدير.</div>
+            </div>
+          </div>
+
+          <!-- Deliverables & Summary -->
+          <div class="glass-panel p-4 rounded-2xl flex flex-col h-96">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400">📑</span>
+                <h3 class="text-xs font-bold text-white">مخرجات المهمة وملفات الإنتاج</h3>
+              </div>
+              <button onclick="downloadActiveProjectZip()" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30 hover:bg-emerald-500/30 transition-all">
+                تحميل الحزمة ZIP 📦
+              </button>
+            </div>
+            <div id="tasks-deliverables-box" class="flex-1 overflow-y-auto text-xs p-3 space-y-3 text-slate-200 bg-office-950/80 rounded-xl mt-3 border border-slate-800/80">
+              <div class="text-slate-500">ستظهر هنا المخرجات والملفات المنجزة فور اكتمال دورة العمل.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 3: LIVE IDE & MONACO-STYLE CODE EDITOR -->
+      <!-- =================================================================== -->
+      <div id="tab-ide-view" class="hidden flex-1 flex flex-col gap-3 min-h-[550px]">
+        <div class="glass-panel p-3 rounded-2xl flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-lg">💻</span>
+            <div class="text-xs font-bold text-white">محرر الأكواد المباشر (Direct Server Sync)</div>
+            <span id="ide-active-file-tag" class="text-[11px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">لم يتم فتح ملف</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openFolderInExplorer()" class="px-3 py-1 rounded-xl bg-office-900 border border-slate-700 text-xs text-slate-300 hover:text-white">
+              فتح في ويندوز 📂
+            </button>
+            <button onclick="saveActiveFileContent()" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md">
+              حفظ الملف على السيرفر 💾
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 flex gap-3 overflow-hidden">
+          <!-- File Tree -->
+          <div class="w-64 glass-panel p-3 rounded-2xl flex flex-col shrink-0">
+            <div class="text-xs font-bold text-slate-300 pb-2 border-b border-slate-800 mb-2 flex items-center justify-between">
+              <span>ملفات المشروع</span>
+              <button onclick="refreshFileList()" class="text-sky-400 text-xs">⟳ تحديث</button>
+            </div>
+            <div id="ide-file-tree" class="flex-1 overflow-y-auto text-xs space-y-1 font-mono pr-1 text-slate-300">
+              <!-- Loaded via JS -->
+            </div>
+          </div>
+
+          <!-- Code Editor Area -->
+          <div class="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden">
+            <textarea id="ide-code-textarea" class="w-full flex-1 bg-office-950 p-4 font-mono text-xs text-slate-100 focus:outline-none resize-none leading-relaxed" placeholder="// اختر ملفاً من القائمة الجانبية للعرض والتعديل المباشر..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 4: INTEGRATED SERVER TERMINAL -->
+      <!-- =================================================================== -->
+      <div id="tab-terminal-view" class="hidden flex flex-col gap-3 flex-1 min-h-[500px]">
+        <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⚡</span>
+            <div class="text-xs font-bold text-white">الطرفية المباشرة (Server Shell Runner)</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="runProjectOnServer()" class="px-3 py-1 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold">
+              تشغيل الخادم: python main.py 🚀
+            </button>
+            <button onclick="stopProjectServer()" class="px-3 py-1 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-bold">
+              إيقاف الخادم 🛑
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 glass-panel p-4 rounded-2xl flex flex-col bg-black/90 font-mono text-xs overflow-hidden border border-sky-500/20">
+          <div id="terminal-stdout" class="flex-1 overflow-y-auto space-y-1 text-emerald-400 p-2">
+            <div>PriceZ Agents Terminal [Version 3.0] (Windows PowerShell host)</div>
+            <div>جاهز لاستقبال الأوامر...</div>
+          </div>
+          <div class="flex items-center gap-2 pt-2 border-t border-slate-800">
+            <span class="text-sky-400 font-bold">$</span>
+            <input type="text" id="terminal-cmd-input" onkeydown="handleTerminalKeyDown(event)" placeholder="أدخل أمراً للتشغيل (مثال: pip list, python test_run.py, dir)..." class="flex-1 bg-transparent text-slate-100 focus:outline-none font-mono text-xs">
+            <button onclick="executeTerminalCommand()" class="px-3 py-1 rounded-lg bg-sky-600 text-white text-xs font-bold">تنفيذ</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 5: SYNC & TIME-TRAVEL REVISIONS -->
+      <!-- =================================================================== -->
+      <div id="tab-sync-view" class="hidden flex flex-col gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Cloud Sync Card -->
+          <div class="glass-panel p-5 rounded-2xl flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm font-bold text-white">
+                <span>🔄</span>
+                <span>المزامنة السحابية الثنائية (Cloud Sync)</span>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">
+                Cloud Sync
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">مزامنة الكود وملفات المشروع فورياً بين نسخة سطح المكتب والسيرفر السحابي.</p>
+            
+            <input type="text" id="sync-remote-url" value="" placeholder="رابط الخادم البعيد (مثال: https://your-server.com)" class="bg-office-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-sky-400 font-mono">
+            <input type="password" id="sync-auth-token" placeholder="رمز المصادقة الاختياري (Auth Token)..." class="bg-office-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-sky-400">
+
+            <div class="grid grid-cols-3 gap-2 pt-1">
+              <button onclick="triggerSyncPush()" class="p-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md transition-all">رفع للسحابة ⬆️</button>
+              <button onclick="triggerSyncPull()" class="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md transition-all">سحب محلي ⬇️</button>
+              <button onclick="triggerTwoWaySync()" class="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition-all">مزامنة كاملة 🔄</button>
+            </div>
+
+            <div id="sync-status-msg" class="text-xs p-2.5 rounded-xl hidden"></div>
+          </div>
+
+          <!-- Time Travel Snapshots Card -->
+          <div class="glass-panel p-5 rounded-2xl flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm font-bold text-white">
+                <span>⏱️</span>
+                <span>سجل الإصدارات (Time-Travel Snapshots)</span>
+              </div>
+              <button onclick="refreshRevisionsList()" class="text-xs text-sky-400">⟳ تحديث</button>
+            </div>
+            <div id="revisions-list-box" class="flex-1 max-h-64 overflow-y-auto space-y-2 text-xs">
+              <!-- Filled via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 6: SETTINGS & LLM PROVIDER -->
+      <!-- =================================================================== -->
+      <div id="tab-settings-view" class="hidden flex flex-col gap-4 max-w-2xl mx-auto w-full">
+        <div class="glass-panel p-6 rounded-2xl flex flex-col gap-4">
+          <div class="flex items-center gap-2 pb-3 border-b border-slate-800">
+            <span class="text-xl">⚙️</span>
+            <h2 class="text-base font-bold text-white">إعدادات الذكاء الاصطناعي ومزودي LLM</h2>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">المزود (AI Provider):</label>
+              <select id="cfg-provider" onchange="handleProviderChange()" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
+                <option value="gemini">Google Gemini (الافتراضي فائق السرعة)</option>
+                <option value="openrouter">OpenRouter (شامل لجميع النماذج)</option>
+                <option value="deepseek">DeepSeek AI (مباشر)</option>
+                <option value="anthropic">Anthropic Claude 3.5 Sonnet</option>
+                <option value="openai">OpenAI / Groq Compatible</option>
+              </select>
+            </div>
+
+            <!-- OpenRouter Free Models Quick Selector Container -->
+            <div id="cfg-openrouter-free-container" class="hidden p-3.5 rounded-2xl bg-gradient-to-br from-office-950 via-slate-900 to-office-950 border border-sky-500/30 shadow-lg space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                  <span class="text-base">🚀</span>
+                  <span>موديلات OpenRouter المجانية (14 نموذج مجاني 100%):</span>
+                </span>
+                <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">100% Free</span>
+              </div>
+              
+              <select id="cfg-openrouter-model-select" onchange="selectOpenRouterFreeModel(this.value, 'cfg-model')" class="w-full bg-office-900 border border-slate-700 hover:border-sky-400/50 rounded-xl p-2.5 text-xs text-white focus:outline-none">
+                <optgroup label="🌟 نماذج إنفيديا العملاقة (NVIDIA)">
+                  <option value="nvidia/nemotron-3-ultra-550b-a55b:free">🔥 nvidia/nemotron-3-ultra-550b-a55b:free (العملاق 550B - للأبحاث والتحليل)</option>
+                  <option value="nvidia/nemotron-3.5-super-vl:free">👁️ nvidia/nemotron-3.5-super-vl:free (رؤية بصرية وتحليل مستندات)</option>
+                  <option value="nvidia/nemotron-3.5-lightning:free">⚡ nvidia/nemotron-3.5-lightning:free (خاطف السرعة Lightning)</option>
+                  <option value="nvidia/nemotron-3-nano-omni:free">🎯 nvidia/nemotron-3-nano-omni:free (Nano أومني متعدد الاستخدامات)</option>
+                </optgroup>
+                <optgroup label="💻 البرمجة والأكواد (Coding & Logic)">
+                  <option value="cohere/north-mini-code:free">💻 cohere/north-mini-code:free (كوهير - مخصص لكتابة الكود والبرمجة)</option>
+                  <option value="recursive/flint-v1.0:free">🧠 recursive/flint-v1.0:free (تفكير منطقي وحسابي متسلسل)</option>
+                </optgroup>
+                <optgroup label="⭐ جوجل والرواد (Google, Baidu & General)">
+                  <option value="google/gemma-4-31b-it:free">⭐ google/gemma-4-31b-it:free (جوجل جيما 31B مفتوح المصدر)</option>
+                  <option value="baidu/ernie-5.5-flash-preview:free">⚡ baidu/ernie-5.5-flash-preview:free (بايدو ERNIE 5.5 فائق الاستدلال)</option>
+                  <option value="openrouter/free">🔀 openrouter/free (توجيه تلقائي ذكي لأفضل نموذج متاح)</option>
+                  <option value="particle-ai/particle-1:free">🌐 particle-ai/particle-1:free (متعدد المهام والتخطيط)</option>
+                </optgroup>
+                <optgroup label="🪶 السرعة والتلخيص واللغات (Fast & Multilingual)">
+                  <option value="thinkingmachines/inkling-2-small:free">🪶 thinkingmachines/inkling-2-small:free (خفيف وسريع للمهام المباشرة)</option>
+                  <option value="dots-studio/dots-3-note-preview:free">📝 dots-studio/dots-3-note-preview:free (تلخيص ملاحظات ومستندات)</option>
+                  <option value="inclusionai/ling-3.2-flash:free">🌍 inclusionai/ling-3.2-flash:free (متعدد اللغات وترجمة فورية)</option>
+                  <option value="liquid/lfm-3-1.7b:free">💧 liquid/lfm-3-1.7b:free (شبكات ديناميكية سائلة فائقة الكفاءة)</option>
+                </optgroup>
+              </select>
+
+              <!-- Quick Selection Pills -->
+              <div class="space-y-1">
+                <div class="text-[11px] text-slate-400">اختيار سريع بنقرة واحدة:</div>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" onclick="selectOpenRouterFreeModel('nvidia/nemotron-3-ultra-550b-a55b:free', 'cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-sky-500/20 border border-slate-700 hover:border-sky-400 text-[11px] text-slate-300 hover:text-white transition-all">🔥 Nemotron 550B</button>
+                  <button type="button" onclick="selectOpenRouterFreeModel('google/gemma-4-31b-it:free', 'cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-400 text-[11px] text-slate-300 hover:text-white transition-all">⭐ Gemma 31B</button>
+                  <button type="button" onclick="selectOpenRouterFreeModel('cohere/north-mini-code:free', 'cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-400 text-[11px] text-slate-300 hover:text-white transition-all">💻 North Mini Code</button>
+                  <button type="button" onclick="selectOpenRouterFreeModel('nvidia/nemotron-3.5-super-vl:free', 'cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-400 text-[11px] text-slate-300 hover:text-white transition-all">👁️ Super VL</button>
+                  <button type="button" onclick="selectOpenRouterFreeModel('baidu/ernie-5.5-flash-preview:free', 'cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-400 text-[11px] text-slate-300 hover:text-white transition-all">⚡ ERNIE 5.5</button>
+                  <button type="button" onclick="selectOpenRouterFreeModel('openrouter/free', 'cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-400 text-[11px] text-slate-300 hover:text-white transition-all">🔀 Auto Free</button>
+                </div>
+              </div>
+
+              <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/80">
+                <span>💡 مفتاح API مجاني بدون رصيد من <a href="https://openrouter.ai/keys" target="_blank" class="text-sky-400 underline hover:text-sky-300">openrouter.ai/keys</a></span>
+                <span class="text-slate-500 font-mono">14 Models Ready</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">مفتاح الـ API (API Key):</label>
+              <input type="password" id="cfg-apikey" placeholder="أدخل مفتاح الـ API الخاص بك هنا..." class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">اسم النموذج (Model Name):</label>
+              <input type="text" id="cfg-model" list="openrouter-free-models" value="gemini-2.5-flash" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none">
+            </div>
+
+            <div id="cfg-baseurl-container">
+              <label class="block text-slate-300 font-semibold mb-1">الرابط المخصص (Base URL - اختياري):</label>
+              <input type="text" id="cfg-baseurl" placeholder="https://api.openai.com/v1" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none">
+            </div>
+
+            <div class="flex items-center justify-between pt-4">
+              <button onclick="testLLMConnection()" class="px-4 py-2 rounded-xl bg-office-900 border border-sky-500/40 text-sky-300 hover:text-white font-bold text-xs">
+                اختبار الاتصال 🔍
+              </button>
+              <button onclick="saveLLMConfig()" class="px-6 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md">
+                حفظ الإعدادات 💾
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- SLIDE-OVER AGENT DETAIL DRAWER (WITH LIVE RENAMING & DIRECT TASK CONTROLS) -->
+  <!-- ========================================================================= -->
+  <div id="agent-drawer-backdrop" onclick="closeAgentDrawer()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  
+  <div id="agent-drawer" class="fixed top-0 bottom-0 left-0 w-full max-w-md bg-office-900/95 border-r border-sky-400/30 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl backdrop-blur-2xl">
+    
+    <!-- Drawer Header -->
+    <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div id="drawer-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-2xl shadow-lg ring-2 ring-sky-400/30">
+          💼
+        </div>
+        <div>
+          <h2 id="drawer-name" class="text-base font-black text-white">Sales Agent</h2>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span id="drawer-role" class="text-xs text-sky-300 font-semibold">وكيل المبيعات والتسويق</span>
+            <span id="drawer-group" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">مجموعة التسويق</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="closeAgentDrawer()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center">
+        ✕
+      </button>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      
+      <!-- Rename & Customize Employee Card (تسمية الموظف وتعديل بياناته) -->
+      <div class="glass-panel p-3.5 rounded-2xl space-y-2 border border-sky-500/25">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold text-sky-300 flex items-center gap-1.5">
+            <span>✏️</span>
+            <span>تسمية هذا الموظف (Custom Name):</span>
+          </span>
+          <span class="text-[10px] text-slate-400">تحديث فوري 3D</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="drawer-rename-name" placeholder="أدخل اسم الموظف..." class="flex-1 bg-office-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400">
+          <button onclick="saveAgentCustomName()" class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/30 transition-all flex items-center gap-1">
+            <span>💾</span>
+            <span>حفظ</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Current State Card -->
+      <div class="glass-panel p-4 rounded-2xl space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-400 font-semibold">الحالة الحالية:</span>
+          <span id="drawer-status-pill" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+            🟢 متاح للعمل
+          </span>
+        </div>
+
+        <div>
+          <div class="text-xs text-slate-400 mb-1 font-semibold">المهمة النشطة:</div>
+          <div id="drawer-current-task" class="text-xs font-semibold text-slate-200 bg-office-950 p-2.5 rounded-xl border border-slate-800">
+            في انتظار توجيهات المدير...
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div>
+          <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+            <span>نسبة الإنجاز</span>
+            <span id="drawer-progress-val" class="font-mono text-sky-400 font-bold">0%</span>
+          </div>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="drawer-progress-bar" class="h-full bg-sky-400 progress-bar-striped transition-all duration-300" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Telemetry Stream for this Agent -->
+      <div class="glass-panel p-4 rounded-2xl space-y-2">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+            <h4 class="text-xs font-bold text-white">سجل التفكير والتنفيذ (Telemetry)</h4>
+          </div>
+          <span class="text-[10px] text-slate-400">مباشر</span>
+        </div>
+        <div id="drawer-telemetry" class="h-44 overflow-y-auto font-mono text-[11px] p-2.5 bg-office-950 rounded-xl border border-slate-800 text-slate-300 space-y-1.5">
+          <div class="text-slate-500">// سجل الوكيل جاهز...</div>
+        </div>
+      </div>
+
+      <!-- Quick Task Assignment Directly to This Agent -->
+      <div class="glass-panel p-4 rounded-2xl space-y-3">
+        <h4 class="text-xs font-bold text-white flex items-center gap-2">
+          <span>🎯</span>
+          <span>إسناد مهمة جديدة لهذا الوكيل فوراً</span>
+        </h4>
+        <textarea id="drawer-task-input" rows="2" placeholder="اكتب المهمة المطلوب من هذا الوكيل تنفيذها حصرياً..." class="w-full bg-office-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"></textarea>
+        
+        <div class="flex items-center gap-2">
+          <button onclick="assignTaskFromDrawer()" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-xs shadow-md shadow-sky-600/30 hover:brightness-110 transition-all flex items-center justify-center gap-2">
+            <span>🚀</span>
+            <span>إسناد وبدء العمل</span>
+          </button>
+          <button onclick="stopWorkflow()" class="px-3 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs">
+            إيقاف 🛑
+          </button>
+        </div>
+      </div>
+
+      <!-- Past History & Deliverables -->
+      <div class="glass-panel p-4 rounded-2xl space-y-2">
+        <h4 class="text-xs font-bold text-white flex items-center gap-2">
+          <span>📜</span>
+          <span>المهام السابقة ومخرجات الوكيل</span>
+        </h4>
+        <div id="drawer-past-tasks" class="space-y-2 text-xs text-slate-400 max-h-36 overflow-y-auto">
+          <div class="p-2 rounded-xl bg-office-950 border border-slate-800 text-[11px]">
+            لا توجد مهام مؤرشفة سابقة لهذا الوكيل.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: QUICK ASSIGN TASK -->
+  <!-- ========================================================================= -->
+  <div id="modal-assign-task" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated max-w-lg w-full p-6 rounded-3xl flex flex-col gap-4 border border-sky-400/30">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2 text-base font-bold text-white">
+          <span>📋</span>
+          <span>توزيع مهمة في المكتب الافتراضي</span>
+        </div>
+        <button onclick="closeModal('modal-assign-task')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">المستهدف:</label>
+          <select id="modal-target-agent" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white">
+            <option value="all">🌟 كامل المكتب الافتراضي (سبرنت شامل)</option>
+            <option value="sales">💼 Sales Agent</option>
+            <option value="support">🎧 Support Agent</option>
+            <option value="research">🔍 Research Agent</option>
+            <option value="content">✍️ Content Agent</option>
+            <option value="report">📊 Report Agent</option>
+            <option value="architect">🏛️ Architect & DevOps</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">وصف المهمة:</label>
+          <textarea id="modal-task-desc" rows="4" placeholder="اكتب المطلوب بدقة..." class="w-full bg-office-900 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button onclick="closeModal('modal-assign-task')" class="px-4 py-2 rounded-xl bg-office-900 border border-slate-700 text-xs text-slate-300">إلغاء</button>
+        <button onclick="launchTaskFromModal()" class="px-6 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/30">إطلاق المهمة 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: EMPLOYEES ROSTER & RENAMING (تسمية وتخصيص طاقم العمل) -->
+  <!-- ========================================================================= -->
+  <div id="modal-employees-roster" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated max-w-xl w-full p-6 rounded-3xl flex flex-col gap-4 border border-purple-400/30">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2 text-base font-bold text-white">
+          <span>👥</span>
+          <span>تسمية وتخصيص موظفي المكتب (AI Employees Roster)</span>
+        </div>
+        <button onclick="closeModal('modal-employees-roster')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-400">يمكنك هنا تغيير وتخصيص أسماء وأدوار جميع الموظفين في المكتب وستظهر الأسماء مباشرة فوق الشخصيات ثلاثية الأبعاد.</p>
+
+      <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1 text-xs" id="roster-edit-list">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeModal('modal-employees-roster')" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: USER AUTHENTICATION (LOGIN & REGISTRATION) -->
+  <!-- ========================================================================= -->
+  <div id="modal-auth" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated max-w-md w-full p-6 rounded-3xl flex flex-col gap-4 border border-sky-400/30 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-sm shadow">
+            👑
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white" id="auth-modal-title">تسجيل الدخول - PriceZ</h3>
+            <p class="text-[10px] text-slate-400">إدارة الجلسة ومفتاح الـ API الخاص بك</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <!-- Auth Tabs: Login vs Register -->
+      <div class="flex bg-office-950 p-1 rounded-2xl border border-slate-800 text-xs">
+        <button onclick="switchAuthMode('login')" id="btn-auth-tab-login" class="flex-1 py-1.5 rounded-xl bg-sky-600 text-white font-bold transition-all">تسجيل الدخول</button>
+        <button onclick="switchAuthMode('register')" id="btn-auth-tab-register" class="flex-1 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all">إنشاء حساب جديد</button>
+      </div>
+
+      <!-- Quick Login Profiles -->
+      <div id="quick-login-section" class="space-y-1.5">
+        <label class="text-[11px] text-slate-400 font-semibold">دخول سريع بنقرة واحدة:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="quickFillLogin('admin', 'admin123')" class="p-2 rounded-xl bg-office-900 border border-sky-500/20 hover:border-sky-400/50 text-right flex items-center gap-2 text-xs">
+            <span class="w-6 h-6 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-[10px] font-bold shrink-0">A</span>
+            <div class="truncate">
+              <div class="font-bold text-white truncate text-[11px]">PriceZ Admin</div>
+              <div class="text-[9px] text-slate-500">مدير النظام (Admin)</div>
+            </div>
+          </button>
+          <button onclick="quickFillLogin('demo_user', 'demo123')" class="p-2 rounded-xl bg-office-900 border border-purple-500/20 hover:border-purple-400/50 text-right flex items-center gap-2 text-xs">
+            <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-[10px] font-bold shrink-0">D</span>
+            <div class="truncate">
+              <div class="font-bold text-white truncate text-[11px]">Demo Member</div>
+              <div class="text-[9px] text-slate-500">حساب تجريبي</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Auth Form Inputs -->
+      <div class="space-y-3 text-xs">
+        <div id="auth-name-container" class="hidden">
+          <label class="block text-slate-300 font-semibold mb-1">الاسم الكامل:</label>
+          <input type="text" id="auth-name-input" placeholder="مثال: أحمد مصطفى" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">اسم المستخدم (Username):</label>
+          <input type="text" id="auth-username-input" value="admin" placeholder="username..." class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-sky-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">كلمة المرور (Password):</label>
+          <input type="password" id="auth-password-input" value="admin123" placeholder="••••••••" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-400">
+        </div>
+
+        <button onclick="submitAuthForm()" id="btn-auth-submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-sky-600/30 transition-all flex items-center justify-center gap-2">
+          <span>🚀</span>
+          <span id="btn-auth-submit-text">تسجيل الدخول</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: PERSONAL USER API CONFIG (مفتاح الـ API الخاص بالمستخدم) -->
+  <!-- ========================================================================= -->
+  <div id="modal-user-api" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated max-w-lg w-full p-6 rounded-3xl flex flex-col gap-4 border border-emerald-400/30 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2 text-base font-bold text-white">
+          <span>🔑</span>
+          <span>مفتاح الـ API الخاص بحسابك</span>
+        </div>
+        <button onclick="closeModal('modal-user-api')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-office-950 border border-emerald-500/20 text-xs flex items-center gap-2.5">
+        <span class="text-emerald-400 text-base">🛡️</span>
+        <div class="text-slate-300 leading-relaxed">
+          هذا المفتاح محفوظ ومشفر ومخصص <strong>لحسابك فقط</strong>. لن يتم مشاركته مع أي مستخدم آخر وسيتم استخدامه في جميع مهامك.
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">المزود (LLM Provider):</label>
+          <select id="user-cfg-provider" onchange="handleUserProviderChange()" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
+            <option value="gemini">Google Gemini (الأسرع والأدق)</option>
+            <option value="openrouter">OpenRouter (شامل لجميع النماذج)</option>
+            <option value="deepseek">DeepSeek AI</option>
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="openai">OpenAI Compatible</option>
+          </select>
+        </div>
+
+        <!-- OpenRouter Free Models Selector for User Modal -->
+        <div id="user-openrouter-free-container" class="hidden p-3.5 rounded-2xl bg-gradient-to-br from-office-950 via-slate-900 to-office-950 border border-sky-500/30 shadow-lg space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+              <span class="text-base">🚀</span>
+              <span>الموديلات المجانية على OpenRouter (14 نموذج مجاني):</span>
+            </span>
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">100% Free</span>
+          </div>
+
+          <select id="user-openrouter-model-select" onchange="selectOpenRouterFreeModel(this.value, 'user-cfg-model')" class="w-full bg-office-900 border border-slate-700 hover:border-sky-400/50 rounded-xl p-2.5 text-xs text-white focus:outline-none">
+            <optgroup label="🌟 نماذج إنفيديا العملاقة (NVIDIA)">
+              <option value="nvidia/nemotron-3-ultra-550b-a55b:free">🔥 nvidia/nemotron-3-ultra-550b-a55b:free (العملاق 550B - للأبحاث والتحليل)</option>
+              <option value="nvidia/nemotron-3.5-super-vl:free">👁️ nvidia/nemotron-3.5-super-vl:free (رؤية بصرية وتحليل مستندات)</option>
+              <option value="nvidia/nemotron-3.5-lightning:free">⚡ nvidia/nemotron-3.5-lightning:free (خاطف السرعة Lightning)</option>
+              <option value="nvidia/nemotron-3-nano-omni:free">🎯 nvidia/nemotron-3-nano-omni:free (Nano أومني متعدد الاستخدامات)</option>
+            </optgroup>
+            <optgroup label="💻 البرمجة والأكواد (Coding & Logic)">
+              <option value="cohere/north-mini-code:free">💻 cohere/north-mini-code:free (كوهير - مخصص لكتابة الكود والبرمجة)</option>
+              <option value="recursive/flint-v1.0:free">🧠 recursive/flint-v1.0:free (تفكير منطقي وحسابي متسلسل)</option>
+            </optgroup>
+            <optgroup label="⭐ جوجل والرواد (Google, Baidu & General)">
+              <option value="google/gemma-4-31b-it:free">⭐ google/gemma-4-31b-it:free (جوجل جيما 31B مفتوح المصدر)</option>
+              <option value="baidu/ernie-5.5-flash-preview:free">⚡ baidu/ernie-5.5-flash-preview:free (بايدو ERNIE 5.5 فائق الاستدلال)</option>
+              <option value="openrouter/free">🔀 openrouter/free (توجيه تلقائي ذكي لأفضل نموذج متاح)</option>
+              <option value="particle-ai/particle-1:free">🌐 particle-ai/particle-1:free (متعدد المهام والتخطيط)</option>
+            </optgroup>
+            <optgroup label="🪶 السرعة والتلخيص واللغات (Fast & Multilingual)">
+              <option value="thinkingmachines/inkling-2-small:free">🪶 thinkingmachines/inkling-2-small:free (خفيف وسريع للمهام المباشرة)</option>
+              <option value="dots-studio/dots-3-note-preview:free">📝 dots-studio/dots-3-note-preview:free (تلخيص ملاحظات ومستندات)</option>
+              <option value="inclusionai/ling-3.2-flash:free">🌍 inclusionai/ling-3.2-flash:free (متعدد اللغات وترجمة فورية)</option>
+              <option value="liquid/lfm-3-1.7b:free">💧 liquid/lfm-3-1.7b:free (شبكات ديناميكية سائلة فائقة الكفاءة)</option>
+            </optgroup>
+          </select>
+
+          <!-- Quick Selection Pills -->
+          <div class="space-y-1">
+            <div class="text-[11px] text-slate-400">اختيار سريع بنقرة واحدة:</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="selectOpenRouterFreeModel('nvidia/nemotron-3-ultra-550b-a55b:free', 'user-cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-sky-500/20 border border-slate-700 hover:border-sky-400 text-[11px] text-slate-300 hover:text-white transition-all">🔥 Nemotron 550B</button>
+              <button type="button" onclick="selectOpenRouterFreeModel('google/gemma-4-31b-it:free', 'user-cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-400 text-[11px] text-slate-300 hover:text-white transition-all">⭐ Gemma 31B</button>
+              <button type="button" onclick="selectOpenRouterFreeModel('cohere/north-mini-code:free', 'user-cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-400 text-[11px] text-slate-300 hover:text-white transition-all">💻 North Mini Code</button>
+              <button type="button" onclick="selectOpenRouterFreeModel('nvidia/nemotron-3.5-super-vl:free', 'user-cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-400 text-[11px] text-slate-300 hover:text-white transition-all">👁️ Super VL</button>
+              <button type="button" onclick="selectOpenRouterFreeModel('baidu/ernie-5.5-flash-preview:free', 'user-cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-400 text-[11px] text-slate-300 hover:text-white transition-all">⚡ ERNIE 5.5</button>
+              <button type="button" onclick="selectOpenRouterFreeModel('openrouter/free', 'user-cfg-model')" class="px-2.5 py-1 rounded-lg bg-office-900 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-400 text-[11px] text-slate-300 hover:text-white transition-all">🔀 Auto Free</button>
+            </div>
+          </div>
+
+          <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/80">
+            <span>💡 مفتاح API مجاني بدون رصيد من <a href="https://openrouter.ai/keys" target="_blank" class="text-sky-400 underline hover:text-sky-300">openrouter.ai/keys</a></span>
+            <span class="text-slate-500 font-mono">14 Models Ready</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">مفتاح الـ API الشخصي (API Key):</label>
+          <input type="password" id="user-cfg-apikey" placeholder="AIzaSy... أو sk-..." class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">اسم النموذج (Model):</label>
+          <input type="text" id="user-cfg-model" list="openrouter-free-models" value="gemini-2.5-flash" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">الرابط المخصص (Base URL - اختياري):</label>
+          <input type="text" id="user-cfg-baseurl" placeholder="https://api.openai.com/v1" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none">
+        </div>
+
+        <div class="flex items-center justify-between pt-3">
+          <button onclick="testPersonalConnection()" class="px-4 py-2 rounded-xl bg-office-900 border border-slate-700 hover:border-emerald-400/50 text-slate-200 hover:text-white font-bold text-xs">
+            اختبار المفتاح 🔍
+          </button>
+          <button onclick="savePersonalLLMConfig()" class="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30">
+            حفظ في حسابي 💾
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: USER MANAGEMENT & TEAM PERMISSIONS (إدارة المستخدمين وصلاحيات الفريق) -->
+  <!-- ========================================================================= -->
+  <div id="modal-user-management" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel-elevated max-w-3xl w-full p-6 rounded-3xl flex flex-col gap-4 border border-sky-400/30 shadow-2xl max-h-[90vh] overflow-hidden">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-lg shadow-lg">
+            👥
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">إدارة المستخدمين وصلاحيات الفريق (User Management)</h3>
+            <p class="text-[10px] text-slate-400">إدارة حسابات فريق العمل، الصلاحيات، ومفاتيح الذكاء الاصطناعي لكل مستخدم</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-user-management')" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+
+      <!-- Action & Filter Bar -->
+      <div class="flex items-center justify-between bg-office-950/80 p-3 rounded-2xl border border-slate-800 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-300 font-semibold">أعضاء الفريق المسجلين:</span>
+          <span id="users-count-tag" class="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs font-bold font-mono">0</span>
+        </div>
+        <button onclick="toggleUserCreateForm()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-500/30 transition-all">
+          <span>➕</span>
+          <span>إضافة مستخدم جديد</span>
+        </button>
+      </div>
+
+      <!-- Collapsible Add/Edit User Form -->
+      <div id="user-edit-form-panel" class="hidden p-4 rounded-2xl bg-office-950 border border-sky-500/40 shadow-inner space-y-3 shrink-0">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <span id="user-form-title" class="text-xs font-bold text-sky-300">➕ إضافة مستخدم جديد للنظام</span>
+          <button onclick="toggleUserCreateForm(false)" class="text-[11px] text-slate-400 hover:text-white">إلغاء ✕</button>
+        </div>
+        <input type="hidden" id="form-edit-username-orig" value="">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">اسم المستخدم (Username):</label>
+            <input type="text" id="form-user-username" placeholder="مثال: ahmed_dev" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-sky-400">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">الاسم الكامل (Full Name):</label>
+            <input type="text" id="form-user-fullname" placeholder="مثال: أحمد مصطفى" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-400">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">كلمة المرور (Password):</label>
+            <input type="password" id="form-user-password" placeholder="4 أحرف على الأقل..." class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-sky-400">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">الدور والصلاحية (Role):</label>
+            <select id="form-user-role" class="w-full bg-office-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-400">
+              <option value="قائد فريق ومطور رئيسي">قائد فريق ومطور رئيسي (Team Lead)</option>
+              <option value="مهندس برمجيات">مهندس برمجيات (Software Engineer)</option>
+              <option value="مختص مبيعات وتسويق">مختص مبيعات وتسويق (Sales & Marketing)</option>
+              <option value="صانع محتوى وباحث">صانع محتوى وباحث (Content & Research)</option>
+              <option value="مراقب ومستخدم عادي">مراقب ومستخدم عادي (Viewer)</option>
+              <option value="مدير النظام (Admin)">مدير النظام (System Admin)</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+            <input type="checkbox" id="form-user-isadmin" class="rounded bg-office-900 border-slate-700 text-sky-500 focus:ring-0">
+            <span>منح صلاحيات إدارة كاملة (Administrator)</span>
+          </label>
+          <button onclick="submitUserForm()" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/30">
+            حفظ المستخدم 💾
+          </button>
+        </div>
+      </div>
+
+      <!-- Users List (Scrollable) -->
+      <div id="users-list-container" class="space-y-2.5 overflow-y-auto pr-1 flex-1 max-h-[50vh]">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Datalist for OpenRouter Free Models Auto-complete -->
+  <datalist id="openrouter-free-models">
+    <option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron 3 Ultra 550B (مجاني - فائق القوة 550B)</option>
+    <option value="nvidia/nemotron-3.5-super-vl:free">NVIDIA Nemotron 3.5 Super VL (مجاني - رؤية بصرية وسائط)</option>
+    <option value="baidu/ernie-5.5-flash-preview:free">Baidu ERNIE 5.5 Flash Preview (مجاني - استدلال فائق)</option>
+    <option value="nvidia/nemotron-3.5-lightning:free">NVIDIA Nemotron 3.5 Lightning (مجاني - فائق السرعة)</option>
+    <option value="thinkingmachines/inkling-2-small:free">Thinking Machines Inkling 2 Small (مجاني - خفيف وسريع)</option>
+    <option value="dots-studio/dots-3-note-preview:free">Dots Studio Dots-3 Note Preview (مجاني - تلخيص وملاحظات)</option>
+    <option value="particle-ai/particle-1:free">Particle AI Particle-1 (مجاني - متعدد المهام)</option>
+    <option value="cohere/north-mini-code:free">Cohere North Mini Code (مجاني - أكواد وبرمجة)</option>
+    <option value="recursive/flint-v1.0:free">Recursive Flint v1.0 (مجاني - منطق وتفكير)</option>
+    <option value="nvidia/nemotron-3-nano-omni:free">NVIDIA Nemotron 3 Nano Omni (مجاني - Nano أومني)</option>
+    <option value="inclusionai/ling-3.2-flash:free">InclusionAI Ling 3.2 Flash (مجاني - لغات وترجمة)</option>
+    <option value="liquid/lfm-3-1.7b:free">Liquid LFM 3 1.7B (مجاني - شبكات سائلة فائقة)</option>
+    <option value="google/gemma-4-31b-it:free">Google Gemma 4 31B IT (مجاني - جوجل جيما 31B)</option>
+    <option value="openrouter/free">OpenRouter Auto Free Router (مجاني - توجيه تلقائي ذكي)</option>
+  </datalist>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-6 left-6 z-[100] flex flex-col gap-2.5 max-w-sm pointer-events-none"></div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT LOGIC & WEBSOCKET ENGINE -->
+  <!-- ========================================================================= -->
+  <script>
+    // State Store
+    const state = {
+      activeTab: 'office',
+      activeDrawerAgent: null,
+      activeFile: null,
+      activeProject: 'default_project',
+      agents: {},
+      telemetryHistory: [],
+      soundEnabled: true,
+      user: null,
+      authToken: localStorage.getItem('pricez_token') || ''
+    };
+
+    // Fetch Interceptor for User Authentication
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+      options.headers = options.headers || {};
+      const token = state.authToken || localStorage.getItem('pricez_token');
+      if (token) {
+        if (options.headers instanceof Headers) {
+          if (!options.headers.has('Authorization')) options.headers.set('Authorization', `Bearer ${token}`);
+        } else if (Array.isArray(options.headers)) {
+          options.headers.push(['Authorization', `Bearer ${token}`]);
+        } else {
+          if (!options.headers['Authorization']) options.headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+      return originalFetch(url, options);
+    };
+
+    // Sleek Toast Notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const bgClass = type === 'success' ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-300' :
+                      type === 'error' ? 'bg-rose-950/90 border-rose-500/40 text-rose-300' :
+                      'bg-sky-950/90 border-sky-500/40 text-sky-300';
+      const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+      toast.className = `p-3 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center gap-2.5 text-xs font-bold transition-all transform duration-300 translate-y-2 opacity-0 pointer-events-auto ${bgClass}`;
+      toast.innerHTML = `<span class="text-sm">${icon}</span><span class="flex-1">${message}</span>`;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 350);
+      }, 3500);
+    }
+
+    // Web Audio Synthesis Chime for Notifications
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playNotifyChime(type = 'info') {
+      if (!state.soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        if (type === 'handoff') {
+          // Two-tone rising chime (D5 -> A5) for agent task handoff
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.type = 'sine';
+          osc2.type = 'sine';
+          osc1.frequency.setValueAtTime(587.33, now);
+          osc2.frequency.setValueAtTime(880.00, now + 0.12);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.12);
+          osc2.start(now + 0.12);
+          osc2.stop(now + 0.35);
+        } else if (type === 'complete') {
+          // Triumphant chord for task completion
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.45);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.45);
+          });
+        } else {
+          // Standard chime
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+      } catch (err) {
+        console.warn('Audio chime warning:', err);
+      }
+    }
+
+    // Native Browser Push Notifications Dispatcher
+    function sendBrowserPushNotification(title, body, options = {}) {
+      playNotifyChime(options.soundType || 'info');
+      showToast(`${title}: ${body}`, options.toastType || 'info');
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          const notif = new Notification(title, {
+            body: body,
+            icon: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=128',
+            tag: options.tag || 'pricez-notification',
+            silent: true
+          });
+          notif.onclick = function() {
+            window.focus();
+            this.close();
+          };
+        } catch (e) {
+          console.warn('Native push notification error:', e);
+        }
+      }
+    }
+
+    async function togglePushNotifications() {
+      if (!('Notification' in window)) {
+        showToast('متصفحك لا يدعم نظام إشعارات Push', 'warning');
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        showToast('إشعارات المتصفح مفعلة ونشطة بالفعل! 🔔', 'success');
+        sendBrowserPushNotification('PriceZ Agents 🔔', 'الإشعارات الفورية تعمل بنجاح وستصلك عند اكتمال أو تسليم أي مهمة.');
+        updateNotificationBellUI(true);
+      } else {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          showToast('تم تفعيل إشعارات المتصفح بنجاح! 🔔', 'success');
+          sendBrowserPushNotification('PriceZ Agents 🔔', 'تم تفعيل إشعارات المتصفح! ستصلك تنبيهات فورية عند انتهاء المهام ونقلها.');
+          updateNotificationBellUI(true);
+        } else {
+          showToast('تم رفض إذن الإشعارات من المتصفح.', 'warning');
+          updateNotificationBellUI(false);
+        }
+      }
+    }
+
+    function updateNotificationBellUI(isEnabled) {
+      const icon = document.getElementById('notif-bell-icon');
+      const text = document.getElementById('notif-bell-status');
+      const btn = document.getElementById('btn-toggle-notifications');
+      if (icon && text && btn) {
+        if (isEnabled) {
+          icon.textContent = '🔔';
+          text.textContent = 'الإشعارات مفعلة';
+          btn.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/25 transition-all cursor-pointer';
+        } else {
+          icon.textContent = '🔕';
+          text.textContent = 'تفعيل الإشعارات';
+          btn.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full bg-office-900 border border-slate-700 hover:border-sky-400 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer';
+        }
+      }
+    }
+
+    // Pre-populate Agent Specs
+    const AGENTS_ROSTER = {
+      sales: { id: 'sales', name: 'Sales Agent', role: 'وكيل المبيعات والتسويق', group: 'مجموعة التسويق', avatar: '💼', color: 'blue' },
+      report: { id: 'report', name: 'Report Agent', role: 'وكيل التقارير والإحصائيات', group: 'مجموعة التقارير', avatar: '📊', color: 'indigo' },
+      research: { id: 'research', name: 'Research Agent', role: 'وكيل البحث والتحليل', group: 'مجموعة البحث والتحليل', avatar: '🔍', color: 'emerald' },
+      support: { id: 'support', name: 'Support Agent', role: 'وكيل الدعم الفني والخدمة', group: 'مجموعة الدعم الفني', avatar: '🎧', color: 'sky' },
+      content: { id: 'content', name: 'Content Agent', role: 'وكيل صناعة المحتوى', group: 'مجموعة التسويق', avatar: '✍️', color: 'purple' },
+      architect: { id: 'architect', name: 'Architect & DevOps', role: 'المخطط والمعمار البرمجي', group: 'مجموعة المعمارية والأكواد', avatar: '🏛️', color: 'cyan' }
+    };
+
+    // Initialize WebSockets
+    let socket = null;
+
+    function initWebSocket() {
+      const loc = window.location;
+      const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProto}//${loc.host}/ws/agents`;
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        console.log('[PriceZ Agents WS] Connected successfully');
+        appendTelemetryLog('// تم الاتصال المباشر بخادم PriceZ Agents بنجاح.');
+        fetchInitialStatus();
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleServerEvent(data);
+        } catch (err) {
+          console.error('[PriceZ Agents WS Parse Error]', err);
+        }
+      };
+
+      socket.onclose = () => {
+        console.warn('[PriceZ Agents WS] Disconnected. Reconnecting in 3s...');
+        setTimeout(initWebSocket, 3000);
+      };
+    }
+
+    // Fetch initial status and real statistics from server
+    async function fetchInitialStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        if (data.stats) {
+          updateRealStats(data.stats, data.agents);
+        }
+        if (data.agents) {
+          data.agents.forEach(a => {
+            if (AGENTS_ROSTER[a.id]) {
+              AGENTS_ROSTER[a.id].name = a.name;
+              AGENTS_ROSTER[a.id].role = a.role;
+            }
+            if (window.office3d) {
+              window.office3d.syncAgentState(a.id, a);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load initial status:', e);
+      }
+    }
+
+    function updateRealStats(stats, agents) {
+      if (!stats) return;
+      document.getElementById('stat-active-tasks').textContent = stats.active_tasks || 0;
+      document.getElementById('stat-agents-count').textContent = stats.available_agents !== undefined ? stats.available_agents : (agents ? agents.length : 6);
+      document.getElementById('stat-completed-tasks').textContent = stats.completed_tasks || 0;
+      document.getElementById('stat-pending-tasks').textContent = stats.in_progress_tasks || 0;
+
+      const activeBadge = document.getElementById('stat-active-badge');
+      if (activeBadge) {
+        if (stats.active_tasks > 0) {
+          activeBadge.textContent = '● نشط الآن';
+          activeBadge.className = 'text-xs font-bold text-sky-400 bg-sky-500/20 px-2.5 py-0.5 rounded-full border border-sky-500/30 animate-pulse';
+        } else {
+          activeBadge.textContent = '● هادئ';
+          activeBadge.className = 'text-xs font-bold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-slate-700';
+        }
+      }
+
+      // Update Recent Tasks List with real records
+      const recentList = document.getElementById('recent-tasks-list');
+      if (recentList && stats.recent_tasks && stats.recent_tasks.length > 0) {
+        recentList.innerHTML = '';
+        stats.recent_tasks.forEach(t => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between p-2 rounded-xl bg-office-900/60 border border-slate-800';
+          row.innerHTML = `
+            <div class="flex items-center gap-2 truncate">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px]">${t.category || 'إنجاز'}</span>
+              <span class="text-slate-200 truncate">${t.title}</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-emerald-400">✓</span>
+              <span class="text-slate-400 text-[10px]">${t.time ? new Date(t.time).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) : 'منذ قليل'}</span>
+            </div>
+          `;
+          recentList.appendChild(row);
+        });
+      }
+    }
+
+    // Server Event Dispatcher (Bridges directly to 3D simulation)
+    function handleServerEvent(data) {
+      const eventType = data.event || data.loop_event;
+
+      switch (eventType) {
+        case 'connected':
+          if (data.agents && window.office3d) {
+            data.agents.forEach(a => {
+              if (AGENTS_ROSTER[a.id]) {
+                AGENTS_ROSTER[a.id].name = a.name;
+                AGENTS_ROSTER[a.id].role = a.role;
+              }
+              window.office3d.syncAgentState(a.id, a);
+            });
+          }
+          break;
+
+        case 'agent_office_step':
+          if (window.office3d) {
+            window.office3d.syncAgentState(data.agent_id, data);
+          }
+          appendTelemetryLog(`[${data.agent_id.toUpperCase()}] ${data.step_details || data.speech}`);
+          if (state.activeDrawerAgent === data.agent_id) {
+            updateDrawerUI(data);
+          }
+          break;
+
+        case 'agent_renamed':
+          if (AGENTS_ROSTER[data.agent_id]) {
+            AGENTS_ROSTER[data.agent_id].name = data.name;
+            if (data.role) AGENTS_ROSTER[data.agent_id].role = data.role;
+          }
+          if (window.office3d) {
+            window.office3d.renameAgent(data.agent_id, data.name, data.role);
+          }
+          if (state.activeDrawerAgent === data.agent_id) {
+            document.getElementById('drawer-name').textContent = data.name;
+            document.getElementById('drawer-rename-name').value = data.name;
+          }
+          appendActivityLog(`تم تعديل اسم الموظف إلى: ${data.name}`);
+          break;
+
+        case 'loop_thought':
+          appendTelemetryLog(`[${data.agent_id || 'AGENT'} THOUGHT] ${data.thought}`);
+          if (state.activeDrawerAgent === data.agent_id) {
+            appendDrawerTelemetry(`💭 ${data.thought}`);
+          }
+          break;
+
+        case 'loop_tool_call':
+          appendTelemetryLog(`[TOOL CALL] ${data.tool_name}(${JSON.stringify(data.arguments)})`);
+          if (state.activeDrawerAgent === data.agent_id) {
+            appendDrawerTelemetry(`⚡ تنفيذ أداة: ${data.tool_name}`);
+          }
+          break;
+
+        case 'workflow_started':
+          document.getElementById('btn-start-task').classList.add('hidden');
+          document.getElementById('btn-stop-task').classList.remove('hidden');
+          document.getElementById('stat-active-tasks').textContent = '1';
+          document.getElementById('stat-pending-tasks').textContent = '1';
+          const b = document.getElementById('stat-active-badge');
+          if (b) {
+            b.textContent = '● نشط الآن';
+            b.className = 'text-xs font-bold text-sky-400 bg-sky-500/20 px-2.5 py-0.5 rounded-full border border-sky-500/30 animate-pulse';
+          }
+          appendActivityLog(`بدأت مهمة جديدة: ${data.user_request.slice(0, 40)}...`);
+          sendBrowserPushNotification(
+            '🚀 بدأت مهمة جديدة في PriceZ Agents',
+            data.user_request.slice(0, 60),
+            { soundType: 'info', toastType: 'info' }
+          );
+          break;
+
+        case 'agent_handoff':
+          appendActivityLog(`🔄 تسليم المهمة: من ${data.from_agent_name} إلى ${data.to_agent_name}`);
+          sendBrowserPushNotification(
+            `🔄 تسليم مهمة إلى ${data.to_agent_name}`,
+            data.message || `تم تحويل وتسليم المهمة إلى ${data.to_agent_name}`,
+            { soundType: 'handoff', toastType: 'info' }
+          );
+          if (window.office3d && data.to_agent) {
+            window.office3d.focusOnAgent(data.to_agent);
+          }
+          break;
+
+        case 'agent_completed':
+          appendActivityLog(`✅ أنجز ${data.agent_name} مهمته: ${data.task}`);
+          sendBrowserPushNotification(
+            `✅ إنجاز من ${data.agent_name}`,
+            data.message || `اكتمل تنفيذ التكليف الفردي بنجاح`,
+            { soundType: 'complete', toastType: 'success' }
+          );
+          break;
+
+        case 'workflow_completed':
+          document.getElementById('btn-start-task').classList.remove('hidden');
+          document.getElementById('btn-stop-task').classList.add('hidden');
+          document.getElementById('stat-active-tasks').textContent = '0';
+          document.getElementById('stat-pending-tasks').textContent = '0';
+          const bDone = document.getElementById('stat-active-badge');
+          if (bDone) {
+            bDone.textContent = '● هادئ';
+            bDone.className = 'text-xs font-bold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full border border-slate-700';
+          }
+          const curComp = parseInt(document.getElementById('stat-completed-tasks').textContent || '0');
+          document.getElementById('stat-completed-tasks').textContent = curComp + 1;
+          appendActivityLog('تم إنجاز المهمة وحفظ التحديثات بنجاح! ✅');
+          
+          // Trigger Push Notification on completion
+          sendBrowserPushNotification(
+            '🎉 اكتملت المهمة بنجاح في PriceZ Agents!',
+            data.message || data.task_name || 'تم إنهاء جميع خطوات العمل وحفظ الملفات في المشروع.',
+            { soundType: 'complete', toastType: 'success' }
+          );
+
+          renderDeliverables(data.results);
+          refreshFileList();
+          fetchInitialStatus();
+          break;
+
+        case 'workflow_cancelled':
+        case 'workflow_error':
+          document.getElementById('btn-start-task').classList.remove('hidden');
+          document.getElementById('btn-stop-task').classList.add('hidden');
+          document.getElementById('stat-active-tasks').textContent = '0';
+          document.getElementById('stat-pending-tasks').textContent = '0';
+          appendActivityLog(`تنبيه: ${data.message || data.error}`);
+          break;
+
+        case 'file_saved_live':
+          appendActivityLog(`تم حفظ الملف: ${data.path}`);
+          break;
+      }
+    }
+
+    // Agent Side Drawer Open/Close (Triggered by 3D click)
+    function openAgentDrawer(agentId) {
+      state.activeDrawerAgent = agentId;
+      const spec = AGENTS_ROSTER[agentId] || { name: agentId, role: 'Agent', group: 'Office', avatar: '🤖' };
+
+      document.getElementById('drawer-name').textContent = spec.name;
+      document.getElementById('drawer-rename-name').value = spec.name;
+      document.getElementById('drawer-role').textContent = spec.role;
+      document.getElementById('drawer-group').textContent = spec.group;
+      document.getElementById('drawer-avatar').textContent = spec.avatar;
+
+      // Clear telemetry box
+      const tel = document.getElementById('drawer-telemetry');
+      tel.innerHTML = `<div class="text-slate-500">// بث التفكير المباشر لـ ${spec.name}...</div>`;
+
+      // Slide in
+      document.getElementById('agent-drawer-backdrop').classList.remove('hidden');
+      const drawer = document.getElementById('agent-drawer');
+      drawer.classList.remove('-translate-x-full');
+      drawer.classList.add('translate-x-0');
+    }
+
+    function closeAgentDrawer() {
+      state.activeDrawerAgent = null;
+      document.getElementById('agent-drawer-backdrop').classList.add('hidden');
+      const drawer = document.getElementById('agent-drawer');
+      drawer.classList.add('-translate-x-full');
+      drawer.classList.remove('translate-x-0');
+    }
+
+    // Save Custom Name for Current Drawer Agent
+    async function saveAgentCustomName() {
+      if (!state.activeDrawerAgent) return;
+      const input = document.getElementById('drawer-rename-name');
+      const newName = input.value.trim();
+      if (!newName) {
+        alert('يرجى إدخال اسم الموظف.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/agents/${state.activeDrawerAgent}/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('drawer-name').textContent = newName;
+          if (AGENTS_ROSTER[state.activeDrawerAgent]) {
+            AGENTS_ROSTER[state.activeDrawerAgent].name = newName;
+          }
+          if (window.office3d) {
+            window.office3d.renameAgent(state.activeDrawerAgent, newName);
+          }
+          appendActivityLog(`تم حفظ اسم الموظف: ${newName}`);
+        } else {
+          alert('تعذر حفظ الاسم: ' + (data.error || 'خطأ غير معروف'));
+        }
+      } catch (err) {
+        alert('فشل الاتصال: ' + err.message);
+      }
+    }
+
+    function updateDrawerUI(data) {
+      const statusPill = document.getElementById('drawer-status-pill');
+      const curTask = document.getElementById('drawer-current-task');
+      const progVal = document.getElementById('drawer-progress-val');
+      const progBar = document.getElementById('drawer-progress-bar');
+
+      const status = data.status || 'idle';
+      const progress = data.progress || 0;
+
+      if (status === 'working') {
+        statusPill.textContent = '🔵 يعمل الآن';
+        statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30';
+      } else if (status === 'done') {
+        statusPill.textContent = '✅ تم الإنجاز';
+        statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30';
+      } else {
+        statusPill.textContent = '🟢 متاح للعمل';
+        statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30';
+      }
+
+      if (data.step_details || data.active_task) {
+        curTask.textContent = data.step_details || data.active_task;
+      }
+
+      progVal.textContent = `${progress}%`;
+      progBar.style.width = `${progress}%`;
+    }
+
+    function appendDrawerTelemetry(msg) {
+      const tel = document.getElementById('drawer-telemetry');
+      const row = document.createElement('div');
+      row.className = 'p-1 rounded bg-slate-900/60 border border-slate-800 text-sky-200';
+      row.textContent = msg;
+      tel.appendChild(row);
+      tel.scrollTop = tel.scrollHeight;
+    }
+
+    // Direct Task Assignment from Drawer
+    async function assignTaskFromDrawer() {
+      if (!state.activeDrawerAgent) return;
+      const input = document.getElementById('drawer-task-input');
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      try {
+        const res = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            target_agent: state.activeDrawerAgent,
+            project_id: state.activeProject
+          })
+        });
+        const d = await res.json();
+        input.value = '';
+        appendActivityLog(`تم إسناد مهمة مباشرة لـ ${state.activeDrawerAgent}`);
+      } catch (e) {
+        alert('فشل إرسال المهمة: ' + e.message);
+      }
+    }
+
+    // Workflow Control
+    async function startWorkflow() {
+      const prompt = document.getElementById('task-prompt-input').value.trim();
+      if (!prompt) {
+        alert('يرجى إدخال تفاصيل المهمة أولاً.');
+        return;
+      }
+      const target = document.getElementById('task-target-select').value;
+
+      try {
+        const res = await fetch('/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            target_agent: target,
+            project_id: state.activeProject
+          })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.detail || 'تعذر بدء المهمة');
+        }
+      } catch (e) {
+        alert('خطأ في الاتصال: ' + e.message);
+      }
+    }
+
+    async function stopWorkflow() {
+      try {
+        await fetch('/api/stop', { method: 'POST' });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Deliverables Renderer
+    function renderDeliverables(res) {
+      const box = document.getElementById('tasks-deliverables-box');
+      box.innerHTML = '';
+
+      if (res.architecture) {
+        const d = document.createElement('div');
+        d.className = 'p-3 rounded-xl bg-office-900 border border-sky-500/20';
+        d.innerHTML = `<div class="font-bold text-sky-400 mb-1">🏛️ الهيكل المعماري وخطة العمل:</div><pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-300">${res.architecture}</pre>`;
+        box.appendChild(d);
+      }
+
+      if (res.deliverable) {
+        const d = document.createElement('div');
+        d.className = 'p-3 rounded-xl bg-office-900 border border-emerald-500/20';
+        d.innerHTML = `<div class="font-bold text-emerald-400 mb-1">💼 مخرج التكليف المباشر:</div><pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-300">${res.deliverable}</pre>`;
+        box.appendChild(d);
+      }
+
+      if (res.report) {
+        const d = document.createElement('div');
+        d.className = 'p-3 rounded-xl bg-office-900 border border-purple-500/20';
+        d.innerHTML = `<div class="font-bold text-purple-400 mb-1">📊 التقرير التنفيذي الشامل:</div><pre class="whitespace-pre-wrap font-mono text-[11px] text-slate-300">${res.report}</pre>`;
+        box.appendChild(d);
+      }
+    }
+
+    // Telemetry Feed Helpers
+    function appendTelemetryLog(msg) {
+      const feed = document.getElementById('tasks-telemetry-feed');
+      if (!feed) return;
+      const div = document.createElement('div');
+      div.className = 'hover:bg-white/5 p-1 rounded transition-all';
+      div.textContent = msg;
+      feed.appendChild(div);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function clearTelemetry() {
+      document.getElementById('tasks-telemetry-feed').innerHTML = '';
+    }
+
+    function appendActivityLog(text) {
+      const feed = document.getElementById('system-activity-feed');
+      if (!feed) return;
+      const time = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-office-900/60 border border-slate-800';
+      row.innerHTML = `<div class="flex items-center gap-2 truncate"><span class="text-sky-400">⚡</span><span class="text-slate-200 truncate">${text}</span></div><span class="text-slate-400 text-[10px] shrink-0">${time}</span>`;
+      feed.prepend(row);
+    }
+
+    // Navigation Tab Switching
+    function switchTab(tabId) {
+      state.activeTab = tabId;
+      const tabs = ['office', 'preview', 'tasks', 'ide', 'terminal', 'sync', 'settings'];
+      tabs.forEach(t => {
+        const view = document.getElementById(`tab-${t}-view`);
+        const btn = document.getElementById(`nav-${t}`);
+        if (view) view.classList.toggle('hidden', t !== tabId);
+        if (btn) {
+          if (t === tabId) {
+            btn.className = 'nav-tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-600/30 transition-all';
+          } else {
+            btn.className = 'nav-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 transition-all';
+          }
+        }
+      });
+
+      if (tabId === 'office' && window.office3d) {
+        setTimeout(() => window.office3d.onWindowResize(), 100);
+      }
+      if (tabId === 'preview') {
+        reloadPreviewFrame();
+        checkPreviewServerStatus(state.activeProject);
+      }
+      if (tabId === 'ide') refreshFileList();
+      if (tabId === 'sync') refreshRevisionsList();
+    }
+
+    // =========================================================================
+    // Live Project Preview Logic
+    // =========================================================================
+    function changePreviewProject(projId) {
+      state.activeProject = projId;
+      const frame = document.getElementById('live-preview-iframe');
+      const urlDisplay = document.getElementById('preview-url-display');
+      if (frame) frame.src = `/api/projects/${projId}/preview?t=${Date.now()}`;
+      if (urlDisplay) urlDisplay.textContent = `/api/projects/${projId}/preview`;
+      checkPreviewServerStatus(projId);
+    }
+
+    function setPreviewDevice(device) {
+      const wrapper = document.getElementById('preview-frame-wrapper');
+      const btnDesktop = document.getElementById('btn-device-desktop');
+      const btnTablet = document.getElementById('btn-device-tablet');
+      const btnMobile = document.getElementById('btn-device-mobile');
+
+      btnDesktop.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all';
+      btnTablet.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all';
+      btnMobile.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition-all';
+
+      if (device === 'mobile') {
+        wrapper.style.width = '375px';
+        wrapper.style.height = '667px';
+        btnMobile.className = 'px-2.5 py-1 rounded-lg bg-sky-600 text-white font-bold transition-all';
+      } else if (device === 'tablet') {
+        wrapper.style.width = '768px';
+        wrapper.style.height = '100%';
+        btnTablet.className = 'px-2.5 py-1 rounded-lg bg-sky-600 text-white font-bold transition-all';
+      } else {
+        wrapper.style.width = '100%';
+        wrapper.style.height = '100%';
+        btnDesktop.className = 'px-2.5 py-1 rounded-lg bg-sky-600 text-white font-bold transition-all';
+      }
+    }
+
+    function reloadPreviewFrame() {
+      const frame = document.getElementById('live-preview-iframe');
+      if (frame) {
+        const cur = frame.src.split('?')[0];
+        frame.src = `${cur}?t=${Date.now()}`;
+        showToast('تم تحديث المعاينة المباشرة 🔄', 'info');
+      }
+    }
+
+    function openPreviewInNewTab() {
+      window.open(`/api/projects/${state.activeProject}/preview`, '_blank');
+    }
+
+    async function checkPreviewServerStatus(projId) {
+      try {
+        const res = await fetch(`/api/projects/${projId || state.activeProject}/preview-status`);
+        const data = await res.json();
+        const btnRun = document.getElementById('btn-preview-run');
+        const btnStop = document.getElementById('btn-preview-stop');
+        if (data.is_server_running) {
+          if (btnRun) btnRun.classList.add('hidden');
+          if (btnStop) {
+            btnStop.classList.remove('hidden');
+            btnStop.textContent = `⏹️ إيقاف السيرفر (PID: ${data.server_pid})`;
+          }
+        } else {
+          if (btnRun) btnRun.classList.remove('hidden');
+          if (btnStop) btnStop.classList.add('hidden');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function startProjectLiveServer() {
+      showToast('جاري تشغيل سيرفر المشروع... ▶️', 'info');
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'python main.py' })
+        });
+        const d = await res.json();
+        showToast(d.message || 'بدأ تشغيل سيرفر المشروع بنجاح 🚀', 'success');
+        checkPreviewServerStatus(state.activeProject);
+        setTimeout(reloadPreviewFrame, 1500);
+      } catch (e) {
+        showToast('خطأ: ' + e.message, 'error');
+      }
+    }
+
+    async function stopProjectLiveServer() {
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/stop-process`, { method: 'POST' });
+        const d = await res.json();
+        showToast(d.message || 'تم إيقاف السيرفر.', 'info');
+        checkPreviewServerStatus(state.activeProject);
+      } catch (e) {
+        showToast('خطأ: ' + e.message, 'error');
+      }
+    }
+
+    // =========================================================================
+    // User Authentication & Per-User API Config Logic
+    // =========================================================================
+    function toggleUserDropdown() {
+      const menu = document.getElementById('user-profile-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('user-profile-menu');
+      if (menu && !menu.contains(e.target) && !e.target.closest('button[onclick="toggleUserDropdown()"]')) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    let currentAuthMode = 'login';
+    function openAuthModal() {
+      const menu = document.getElementById('user-profile-menu');
+      if (menu) menu.classList.add('hidden');
+      document.getElementById('modal-auth').classList.remove('hidden');
+    }
+
+    function switchAuthMode(mode) {
+      currentAuthMode = mode;
+      const nameCont = document.getElementById('auth-name-container');
+      const quickSec = document.getElementById('quick-login-section');
+      const btnText = document.getElementById('btn-auth-submit-text');
+      const tabLogin = document.getElementById('btn-auth-tab-login');
+      const tabReg = document.getElementById('btn-auth-tab-register');
+
+      if (mode === 'register') {
+        nameCont.classList.remove('hidden');
+        quickSec.classList.add('hidden');
+        btnText.textContent = 'إنشاء الحساب وبدء الاستخدام';
+        tabLogin.className = 'flex-1 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all';
+        tabReg.className = 'flex-1 py-1.5 rounded-xl bg-sky-600 text-white font-bold transition-all';
+      } else {
+        nameCont.classList.add('hidden');
+        quickSec.classList.remove('hidden');
+        btnText.textContent = 'تسجيل الدخول';
+        tabLogin.className = 'flex-1 py-1.5 rounded-xl bg-sky-600 text-white font-bold transition-all';
+        tabReg.className = 'flex-1 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all';
+      }
+    }
+
+    function quickFillLogin(username, password) {
+      document.getElementById('auth-username-input').value = username;
+      document.getElementById('auth-password-input').value = password;
+      submitAuthForm();
+    }
+
+    async function submitAuthForm() {
+      const username = document.getElementById('auth-username-input').value.trim();
+      const password = document.getElementById('auth-password-input').value.trim();
+      const name = document.getElementById('auth-name-input').value.trim();
+
+      if (!username || !password) {
+        showToast('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
+        return;
+      }
+
+      const endpoint = currentAuthMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const body = currentAuthMode === 'register' ? { username, password, name } : { username, password };
+
+      try {
+        const res = await originalFetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const d = await res.json();
+        if (res.ok && d.success) {
+          state.authToken = d.token;
+          localStorage.setItem('pricez_token', d.token);
+          setUserState(d.user);
+          closeModal('modal-auth');
+          showToast(d.message || `مرحباً بك يا ${d.user.name}! 👑`, 'success');
+          loadUserLLMConfig();
+        } else {
+          showToast(d.detail || d.error || 'فشل تسجيل الدخول', 'error');
+        }
+      } catch (e) {
+        showToast('تعذر الاتصال بخدمة التحقق: ' + e.message, 'error');
+      }
+    }
+
+    async function logoutUser() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (e) {}
+      localStorage.removeItem('pricez_token');
+      state.authToken = '';
+      state.user = null;
+      toggleUserDropdown();
+      showToast('تم تسجيل الخروج بنجاح 👋', 'info');
+      document.getElementById('top-user-name').textContent = 'غير مسجل';
+      document.getElementById('top-user-role').textContent = 'تسجيل الدخول';
+      openAuthModal();
+    }
+
+    // =========================================================================
+    // User Management System Logic (إدارة المستخدمين وصلاحيات الفريق)
+    // =========================================================================
+    let allUsersCache = [];
+
+    function openUserManagementModal() {
+      const menu = document.getElementById('user-profile-menu');
+      if (menu) menu.classList.add('hidden');
+      toggleUserCreateForm(false);
+      loadUsersList();
+      document.getElementById('modal-user-management').classList.remove('hidden');
+    }
+
+    async function loadUsersList() {
+      const container = document.getElementById('users-list-container');
+      const badge = document.getElementById('users-count-tag');
+      const menuCount = document.getElementById('menu-users-count');
+      if (container) {
+        container.innerHTML = '<div class="text-center py-6 text-xs text-slate-400 animate-pulse">جاري تحميل قائمة المستخدمين...</div>';
+      }
+
+      try {
+        const res = await fetch('/api/users');
+        if (res.ok) {
+          const d = await res.json();
+          allUsersCache = d.users || [];
+          if (badge) badge.textContent = allUsersCache.length;
+          if (menuCount) menuCount.textContent = `${allUsersCache.length} أعضاء`;
+          renderUsersList(allUsersCache);
+        } else {
+          container.innerHTML = '<div class="text-center py-4 text-xs text-rose-400">فشل تحميل المستخدمين</div>';
+        }
+      } catch (err) {
+        if (container) {
+          container.innerHTML = `<div class="text-center py-4 text-xs text-rose-400">خطأ: ${err.message}</div>`;
+        }
+      }
+    }
+
+    function renderUsersList(users) {
+      const container = document.getElementById('users-list-container');
+      if (!container) return;
+      if (!users.length) {
+        container.innerHTML = '<div class="text-center py-8 text-xs text-slate-400">لا يوجد مستخدمين مسجلين</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      users.forEach(u => {
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-2xl bg-office-900 border border-slate-800 hover:border-sky-500/30 flex items-center justify-between gap-3 transition-all';
+        
+        const isAdmin = u.is_admin;
+        const roleBadge = isAdmin 
+          ? '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">مدير نظام 👑</span>'
+          : '<span class="text-[9px] px-2 py-0.5 rounded-full font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">عضو فريق</span>';
+
+        const apiBadge = u.has_custom_api_key
+          ? `<span class="text-[10px] text-emerald-400 font-semibold" title="مزود: ${u.provider}">مفتاح API مخصص ✓</span>`
+          : '<span class="text-[10px] text-slate-500">مفتاح النظام الافتراضي</span>';
+
+        const isCurrent = state.user && state.user.username === u.username;
+        const isRootAdmin = u.username === 'admin';
+
+        row.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 p-0.5 shadow-md shrink-0">
+              <img src="${u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}" alt="${u.name}" class="w-full h-full object-cover rounded-full">
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white text-xs truncate">${u.name}</span>
+                <span class="text-[10px] text-slate-400 font-mono">@${u.username}</span>
+                ${isCurrent ? '<span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold">حسابك</span>' : ''}
+              </div>
+              <div class="flex items-center gap-2 pt-0.5 flex-wrap">
+                <span class="text-[11px] text-slate-300">${u.role}</span>
+                ${roleBadge}
+                <span class="text-slate-600">•</span>
+                ${apiBadge}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="editUser('${u.username}')" class="px-2.5 py-1 rounded-lg bg-office-950 hover:bg-sky-500/20 border border-slate-700 hover:border-sky-400 text-sky-300 text-xs font-semibold flex items-center gap-1 transition-all" title="تعديل المستخدم">
+              <span>✏️</span>
+              <span class="hidden sm:inline">تعديل</span>
+            </button>
+            ${!isRootAdmin ? `
+            <button onclick="confirmDeleteUser('${u.username}')" class="px-2.5 py-1 rounded-lg bg-office-950 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-400 text-rose-400 text-xs font-semibold flex items-center gap-1 transition-all" title="حذف المستخدم">
+              <span>🗑️</span>
+              <span class="hidden sm:inline">حذف</span>
+            </button>
+            ` : '<span class="text-[10px] text-amber-400 font-mono px-2">رئيسي 🔒</span>'}
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function toggleUserCreateForm(show, userToEdit = null) {
+      const panel = document.getElementById('user-edit-form-panel');
+      if (!panel) return;
+
+      if (show === undefined) {
+        show = panel.classList.contains('hidden');
+      }
+
+      if (show) {
+        panel.classList.remove('hidden');
+        if (userToEdit) {
+          document.getElementById('user-form-title').textContent = `✏️ تعديل بيانات المستخدم (@${userToEdit.username})`;
+          document.getElementById('form-edit-username-orig').value = userToEdit.username;
+          document.getElementById('form-user-username').value = userToEdit.username;
+          document.getElementById('form-user-username').disabled = true;
+          document.getElementById('form-user-fullname').value = userToEdit.name;
+          document.getElementById('form-user-password').value = '';
+          document.getElementById('form-user-password').placeholder = 'اتركه فارغاً للإبقاء على كلمة المرور الحالية';
+          document.getElementById('form-user-role').value = userToEdit.role;
+          document.getElementById('form-user-isadmin').checked = userToEdit.is_admin;
+        } else {
+          document.getElementById('user-form-title').textContent = '➕ إضافة مستخدم جديد للنظام';
+          document.getElementById('form-edit-username-orig').value = '';
+          document.getElementById('form-user-username').value = '';
+          document.getElementById('form-user-username').disabled = false;
+          document.getElementById('form-user-fullname').value = '';
+          document.getElementById('form-user-password').value = '';
+          document.getElementById('form-user-password').placeholder = '4 أحرف على الأقل...';
+          document.getElementById('form-user-role').value = 'مهندس برمجيات';
+          document.getElementById('form-user-isadmin').checked = false;
+        }
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
+
+    function editUser(username) {
+      const u = allUsersCache.find(x => x.username === username);
+      if (u) {
+        toggleUserCreateForm(true, u);
+      }
+    }
+
+    async function submitUserForm() {
+      const origUsername = document.getElementById('form-edit-username-orig').value;
+      const username = document.getElementById('form-user-username').value.trim().toLowerCase();
+      const name = document.getElementById('form-user-fullname').value.trim();
+      const password = document.getElementById('form-user-password').value.trim();
+      const role = document.getElementById('form-user-role').value;
+      const isAdmin = document.getElementById('form-user-isadmin').checked;
+
+      if (!origUsername && (!username || username.length < 3)) {
+        showToast('اسم المستخدم يجب أن يكون 3 أحرف على الأقل', 'error');
+        return;
+      }
+      if (!name) {
+        showToast('يرجى إدخال الاسم الكامل للمستخدم', 'error');
+        return;
+      }
+      if (!origUsername && (!password || password.length < 4)) {
+        showToast('كلمة المرور يجب أن تكون 4 أحرف على الأقل للمستخدم الجديد', 'error');
+        return;
+      }
+
+      try {
+        let res, d;
+        if (origUsername) {
+          // UPDATE
+          const payload = { name, role, is_admin: isAdmin };
+          if (password) payload.password = password;
+          res = await fetch(`/api/users/${origUsername}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          // CREATE
+          res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, name, role, is_admin: isAdmin })
+          });
+        }
+
+        d = await res.json();
+        if (res.ok && d.success) {
+          showToast(d.message || 'تم حفظ المستخدم بنجاح! ✨', 'success');
+          toggleUserCreateForm(false);
+          loadUsersList();
+        } else {
+          showToast(d.detail || d.error || 'فشلت العملية', 'error');
+        }
+      } catch (err) {
+        showToast('خطأ أثناء حفظ المستخدم: ' + err.message, 'error');
+      }
+    }
+
+    async function confirmDeleteUser(username) {
+      if (!confirm(`هل أنت متأكد من حذف المستخدم (@${username}) نهائياً؟`)) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/users/${username}`, { method: 'DELETE' });
+        const d = await res.json();
+        if (res.ok && d.success) {
+          showToast(d.message || 'تم حذف المستخدم بنجاح 🗑️', 'info');
+          loadUsersList();
+        } else {
+          showToast(d.detail || d.error || 'تعذر حذف المستخدم', 'error');
+        }
+      } catch (err) {
+        showToast('خطأ: ' + err.message, 'error');
+      }
+    }
+
+    async function initAuth() {
+      const savedToken = localStorage.getItem('pricez_token');
+      if (savedToken) {
+        state.authToken = savedToken;
+        try {
+          const res = await fetch('/api/auth/me');
+          if (res.ok) {
+            const d = await res.json();
+            if (d.authenticated && d.user) {
+              setUserState(d.user);
+              loadUserLLMConfig();
+              return;
+            }
+          }
+        } catch (e) {}
+      }
+      await autoLoginDefault('admin', 'admin123');
+    }
+
+    async function autoLoginDefault(username, password) {
+      try {
+        const res = await originalFetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          state.authToken = d.token;
+          localStorage.setItem('pricez_token', d.token);
+          setUserState(d.user);
+          loadUserLLMConfig();
+        }
+      } catch (e) {
+        console.error('Auto login failed:', e);
+      }
+    }
+
+    function setUserState(user) {
+      state.user = user;
+      document.getElementById('top-user-name').textContent = user.name;
+      document.getElementById('top-user-role').textContent = user.role;
+      document.getElementById('menu-user-name').textContent = user.name;
+      document.getElementById('menu-user-username').textContent = `@${user.username}`;
+      if (user.avatar) {
+        document.getElementById('top-user-avatar').src = user.avatar;
+      }
+      
+      const keyBadge = document.getElementById('top-user-key-badge');
+      const menuKeyStatus = document.getElementById('menu-key-status');
+      if (user.has_custom_api_key) {
+        keyBadge.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-office-950 absolute -bottom-0.5 -left-0.5';
+        menuKeyStatus.textContent = 'مخصص ✓';
+        menuKeyStatus.className = 'text-[10px] text-emerald-400 font-bold';
+      } else {
+        keyBadge.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-office-950 absolute -bottom-0.5 -left-0.5';
+        menuKeyStatus.textContent = 'مفتاح النظام';
+        menuKeyStatus.className = 'text-[10px] text-amber-400 font-bold';
+      }
+    }
+
+    // Personal LLM Config Modal & Operations
+    function openPersonalAPISettings() {
+      const menu = document.getElementById('user-profile-menu');
+      if (menu) menu.classList.add('hidden');
+      loadUserLLMConfig();
+      document.getElementById('modal-user-api').classList.remove('hidden');
+    }
+
+    async function loadUserLLMConfig() {
+      try {
+        const res = await fetch('/api/user/llm-config');
+        if (res.ok) {
+          const d = await res.json();
+          if (document.getElementById('user-cfg-provider')) {
+            const uProv = d.provider || 'gemini';
+            document.getElementById('user-cfg-provider').value = uProv;
+            document.getElementById('user-cfg-model').value = d.model || (uProv === 'openrouter' ? 'nvidia/nemotron-3-ultra-550b-a55b:free' : 'gemini-2.5-flash');
+            document.getElementById('user-cfg-baseurl').value = d.base_url || (uProv === 'openrouter' ? 'https://openrouter.ai/api/v1' : '');
+            if (d.api_key_masked) {
+              document.getElementById('user-cfg-apikey').placeholder = `محفوظ (${d.api_key_masked})`;
+            }
+            const uFree = document.getElementById('user-openrouter-free-container');
+            if (uFree) {
+              if (uProv === 'openrouter') uFree.classList.remove('hidden');
+              else uFree.classList.add('hidden');
+            }
+            const userModelSelect = document.getElementById('user-openrouter-model-select');
+            if (userModelSelect && d.model) userModelSelect.value = d.model;
+          }
+          if (document.getElementById('cfg-provider')) {
+            const cProv = d.provider || 'gemini';
+            document.getElementById('cfg-provider').value = cProv;
+            document.getElementById('cfg-model').value = d.model || (cProv === 'openrouter' ? 'nvidia/nemotron-3-ultra-550b-a55b:free' : 'gemini-2.5-flash');
+            document.getElementById('cfg-baseurl').value = d.base_url || (cProv === 'openrouter' ? 'https://openrouter.ai/api/v1' : '');
+            const cFree = document.getElementById('cfg-openrouter-free-container');
+            if (cFree) {
+              if (cProv === 'openrouter') cFree.classList.remove('hidden');
+              else cFree.classList.add('hidden');
+            }
+            const cfgModelSelect = document.getElementById('cfg-openrouter-model-select');
+            if (cfgModelSelect && d.model) cfgModelSelect.value = d.model;
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function savePersonalLLMConfig() {
+      const provider = document.getElementById('user-cfg-provider').value;
+      const key = document.getElementById('user-cfg-apikey').value.trim();
+      const model = document.getElementById('user-cfg-model').value.trim();
+      const base = document.getElementById('user-cfg-baseurl').value.trim();
+
+      try {
+        const res = await fetch('/api/user/llm-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, api_key: key, model, base_url: base })
+        });
+        const d = await res.json();
+        if (res.ok && d.success) {
+          closeModal('modal-user-api');
+          showToast('تم حفظ مفتاح الـ API الخاص بحسابك بنجاح! 💾', 'success');
+          if (state.user) {
+            state.user.has_custom_api_key = Boolean(key);
+            setUserState(state.user);
+          }
+        } else {
+          showToast(d.error || 'فشل حفظ الإعدادات', 'error');
+        }
+      } catch (e) {
+        showToast('خطأ: ' + e.message, 'error');
+      }
+    }
+
+    async function testPersonalConnection() {
+      const provider = document.getElementById('user-cfg-provider').value;
+      const key = document.getElementById('user-cfg-apikey').value.trim();
+      const model = document.getElementById('user-cfg-model').value.trim();
+      const base = document.getElementById('user-cfg-baseurl').value.trim();
+
+      showToast('جاري اختبار اتصال المفتاح... ⚡', 'info');
+      try {
+        const res = await fetch('/api/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, api_key: key, model, base_url: base })
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast(`نجح الاتصال بنجاح! الاستجابة: ${d.message} ✓`, 'success');
+        } else {
+          showToast(`فشل الاتصال: ${d.error || 'تأكد من صحة المفتاح'}`, 'error');
+        }
+      } catch (e) {
+        showToast('خطأ في الاتصال: ' + e.message, 'error');
+      }
+    }
+
+    // IDE Functions
+    async function refreshFileList() {
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/files`);
+        const data = await res.json();
+        const tree = document.getElementById('ide-file-tree');
+        tree.innerHTML = '';
+        data.files.forEach(f => {
+          const row = document.createElement('div');
+          row.className = 'p-2 rounded-xl hover:bg-sky-500/10 cursor-pointer flex items-center justify-between border border-transparent hover:border-sky-500/30';
+          row.innerHTML = `<span class="truncate">${f.path}</span><span class="text-[10px] text-slate-500 font-mono">${(f.size/1024).toFixed(1)}k</span>`;
+          row.onclick = () => loadFileIntoIDE(f.path);
+          tree.appendChild(row);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadFileIntoIDE(path) {
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/files`);
+        const d = await res.json();
+        const f = d.files.find(item => item.path === path);
+        if (f) {
+          state.activeFile = path;
+          document.getElementById('ide-active-file-tag').textContent = path;
+          document.getElementById('ide-code-textarea').value = f.content || '';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function saveActiveFileContent() {
+      if (!state.activeFile) {
+        alert('يرجى تحديد ملف أولاً لحفظه.');
+        return;
+      }
+      const content = document.getElementById('ide-code-textarea').value;
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/files/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: state.activeFile, content: content })
+        });
+        const d = await res.json();
+        if (d.success) {
+          alert('تم حفظ الملف بنجاح على السيرفر! 💾');
+        }
+      } catch (e) {
+        alert('فشل حفظ الملف: ' + e.message);
+      }
+    }
+
+    async function downloadActiveProjectZip() {
+      window.open(`/api/projects/${state.activeProject}/download-zip`, '_blank');
+    }
+
+    async function openFolderInExplorer() {
+      try {
+        await fetch(`/api/projects/${state.activeProject}/open-folder`, { method: 'POST' });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Terminal Commands
+    async function executeTerminalCommand() {
+      const input = document.getElementById('terminal-cmd-input');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+
+      const stdout = document.getElementById('terminal-stdout');
+      const promptLine = document.createElement('div');
+      promptLine.className = 'text-sky-300 font-bold';
+      promptLine.textContent = `$ ${cmd}`;
+      stdout.appendChild(promptLine);
+      input.value = '';
+
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/terminal/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd })
+        });
+        const data = await res.json();
+        const out = document.createElement('pre');
+        out.className = data.success ? 'text-slate-300 whitespace-pre-wrap' : 'text-rose-400 whitespace-pre-wrap';
+        out.textContent = data.stdout || data.stderr || (data.success ? 'تم بنجاح.' : 'حدث خطأ.');
+        stdout.appendChild(out);
+        stdout.scrollTop = stdout.scrollHeight;
+      } catch (e) {
+        const err = document.createElement('div');
+        err.className = 'text-rose-400';
+        err.textContent = `خطأ: ${e.message}`;
+        stdout.appendChild(err);
+      }
+    }
+
+    function handleTerminalKeyDown(e) {
+      if (e.key === 'Enter') executeTerminalCommand();
+    }
+
+    async function runProjectOnServer() {
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'python main.py' })
+        });
+        const d = await res.json();
+        alert(d.message || 'بدأ تشغيل الخادم.');
+      } catch (e) {
+        alert('تعذر تشغيل الخادم: ' + e.message);
+      }
+    }
+
+    async function stopProjectServer() {
+      try {
+        await fetch(`/api/projects/${state.activeProject}/stop-process`, { method: 'POST' });
+        alert('تم إيقاف الخادم.');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Revisions List
+    async function refreshRevisionsList() {
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/revisions`);
+        const data = await res.json();
+        const box = document.getElementById('revisions-list-box');
+        box.innerHTML = '';
+        data.revisions.forEach(r => {
+          const row = document.createElement('div');
+          row.className = 'p-3 rounded-xl bg-office-900 border border-slate-800 flex items-center justify-between';
+          row.innerHTML = `<div><div class="font-bold text-white">${r.message}</div><div class="text-[10px] text-slate-500">${r.author} • ${new Date(r.timestamp).toLocaleTimeString()}</div></div><button onclick="rollbackRevision('${r.id}')" class="px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 font-bold text-[11px]">استعادة ↩</button>`;
+          box.appendChild(row);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function rollbackRevision(revId) {
+      if (!confirm('هل أنت متأكد من استعادة هذه النسخة السابقة؟')) return;
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/revisions/${revId}/rollback`, { method: 'POST' });
+        const d = await res.json();
+        alert(d.message || 'تمت الاستعادة بنجاح.');
+        refreshFileList();
+      } catch (e) {
+        alert('فشل الاستعادة: ' + e.message);
+      }
+    }
+
+    // =========================================================================
+    // Cloud Sync Operations
+    // =========================================================================
+    async function triggerSyncPush() {
+      const url = document.getElementById('sync-remote-url').value.trim();
+      if (!url) {
+        alert('يرجى إدخال رابط الخادم البعيد أولاً.');
+        return;
+      }
+      const token = document.getElementById('sync-auth-token').value.trim();
+      const statusEl = document.getElementById('sync-status-msg');
+      if (statusEl) {
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'text-xs text-sky-400 font-bold p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 block';
+        statusEl.textContent = '⏳ جاري رفع ملفات المشروع إلى السيرفر السحابي (Push)...';
+      }
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/sync/push`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ remote_url: url, auth_token: token })
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (statusEl) {
+            statusEl.className = 'text-xs text-emerald-400 font-bold p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 block';
+            statusEl.textContent = `✅ ${d.message}`;
+          }
+          appendActivityLog(`مزامنة سحابية (Push): ${d.message}`);
+          alert(`✅ تم الرفع للسحابة بنجاح!\n${d.message}`);
+        } else {
+          if (statusEl) {
+            statusEl.className = 'text-xs text-rose-400 font-bold p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 block';
+            statusEl.textContent = `❌ ${d.error || 'فشلت المزامنة'}`;
+          }
+          alert(`خطأ في المزامنة: ${d.error}`);
+        }
+      } catch (e) {
+        if (statusEl) {
+          statusEl.className = 'text-xs text-rose-400 font-bold p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 block';
+          statusEl.textContent = `❌ ${e.message}`;
+        }
+        alert('تعذر الاتصال بالسيرفر السحابي: ' + e.message);
+      }
+    }
+
+    async function triggerSyncPull() {
+      const url = document.getElementById('sync-remote-url').value.trim();
+      if (!url) {
+        alert('يرجى إدخال رابط الخادم البعيد أولاً.');
+        return;
+      }
+      const token = document.getElementById('sync-auth-token').value.trim();
+      const statusEl = document.getElementById('sync-status-msg');
+      if (statusEl) {
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'text-xs text-indigo-400 font-bold p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 block';
+        statusEl.textContent = '⏳ جاري سحب أحدث التعديلات من السيرفر السحابي (Pull)...';
+      }
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/sync/pull`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ remote_url: url, auth_token: token })
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (statusEl) {
+            statusEl.className = 'text-xs text-emerald-400 font-bold p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 block';
+            statusEl.textContent = `✅ ${d.message}`;
+          }
+          appendActivityLog(`مزامنة سحابية (Pull): ${d.message}`);
+          refreshFileList();
+          alert(`✅ تم سحب الملفات من السحابة بنجاح!\n${d.message}`);
+        } else {
+          if (statusEl) {
+            statusEl.className = 'text-xs text-rose-400 font-bold p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 block';
+            statusEl.textContent = `❌ ${d.error || 'فشلت المزامنة'}`;
+          }
+          alert(`خطأ: ${d.error}`);
+        }
+      } catch (e) {
+        alert('تعذر سحب الملفات: ' + e.message);
+      }
+    }
+
+    async function triggerTwoWaySync() {
+      const url = document.getElementById('sync-remote-url').value.trim();
+      if (!url) {
+        alert('يرجى إدخال رابط الخادم البعيد أولاً.');
+        return;
+      }
+      const token = document.getElementById('sync-auth-token').value.trim();
+      const statusEl = document.getElementById('sync-status-msg');
+      if (statusEl) {
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'text-xs text-sky-400 font-bold p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 block';
+        statusEl.textContent = '⏳ جاري إجراء مزامنة ثنائية كاملة بين سطح المكتب والسحابة...';
+      }
+      try {
+        const res = await fetch(`/api/projects/${state.activeProject}/sync/two-way`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ remote_url: url, auth_token: token })
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (statusEl) {
+            statusEl.className = 'text-xs text-emerald-400 font-bold p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 block';
+            statusEl.textContent = `✅ ${d.message}`;
+          }
+          appendActivityLog(`مزامنة ثنائية: ${d.message}`);
+          refreshFileList();
+          alert(`✅ تمت المزامنة الثنائية بنجاح!\n${d.message}`);
+        } else {
+          if (statusEl) {
+            statusEl.className = 'text-xs text-rose-400 font-bold p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 block';
+            statusEl.textContent = `❌ ${d.error || 'فشلت المزامنة'}`;
+          }
+          alert(`خطأ: ${d.error}`);
+        }
+      } catch (e) {
+        alert('تعذر إجراء المزامنة: ' + e.message);
+      }
+    }
+
+    // Modal Helpers
+    function openAssignTaskModal(target) {
+      document.getElementById('modal-target-agent').value = target || 'all';
+      document.getElementById('modal-assign-task').classList.remove('hidden');
+    }
+
+    function openEmployeesRosterModal() {
+      const list = document.getElementById('roster-edit-list');
+      list.innerHTML = '';
+
+      Object.values(AGENTS_ROSTER).forEach(agent => {
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-2xl bg-office-900 border border-slate-800 flex items-center justify-between gap-3';
+        row.innerHTML = `
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="text-2xl">${agent.avatar}</span>
+            <div>
+              <div class="text-[10px] text-sky-400 font-semibold font-mono">${agent.id}</div>
+              <div class="text-xs text-slate-400">${agent.role}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-1 max-w-xs">
+            <input type="text" id="roster-name-${agent.id}" value="${agent.name}" class="w-full bg-office-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400">
+            <button onclick="saveRosterItem('${agent.id}')" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shrink-0 shadow-md">حفظ</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      document.getElementById('modal-employees-roster').classList.remove('hidden');
+    }
+
+    async function saveRosterItem(agentId) {
+      const input = document.getElementById(`roster-name-${agentId}`);
+      if (!input) return;
+      const newName = input.value.trim();
+      if (!newName) return;
+
+      try {
+        const res = await fetch(`/api/agents/${agentId}/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName })
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (AGENTS_ROSTER[agentId]) AGENTS_ROSTER[agentId].name = newName;
+          if (window.office3d) window.office3d.renameAgent(agentId, newName);
+          appendActivityLog(`تم حفظ اسم ${newName} بنجاح`);
+          alert(`تم حفظ اسم الموظف "${newName}" بنجاح وتحديثه في المكتب 3D.`);
+        }
+      } catch (e) {
+        alert('خطأ: ' + e.message);
+      }
+    }
+
+    function openAddAgentModal() {
+      openEmployeesRosterModal();
+    }
+
+    function openReportsModal() {
+      switchTab('tasks');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function launchTaskFromModal() {
+      const prompt = document.getElementById('modal-task-desc').value.trim();
+      const target = document.getElementById('modal-target-agent').value;
+      if (!prompt) return;
+
+      closeModal('modal-assign-task');
+      document.getElementById('task-prompt-input').value = prompt;
+      document.getElementById('task-target-select').value = target;
+      switchTab('tasks');
+      startWorkflow();
+    }
+
+    function setSamplePrompt(text) {
+      document.getElementById('task-prompt-input').value = text;
+    }
+
+    // Helper: Select OpenRouter Free Model
+    function selectOpenRouterFreeModel(modelId, targetInputId) {
+      const input = document.getElementById(targetInputId);
+      if (input) {
+        input.value = modelId;
+      }
+      const selectCfg = document.getElementById('cfg-openrouter-model-select');
+      const selectUser = document.getElementById('user-openrouter-model-select');
+      if (selectCfg && selectCfg.value !== modelId) selectCfg.value = modelId;
+      if (selectUser && selectUser.value !== modelId) selectUser.value = modelId;
+      showToast(`تم اختيار النموذج: ${modelId.split('/')[1] || modelId}`, 'info');
+    }
+
+    // LLM Config Provider Handlers
+    function handleProviderChange() {
+      const p = document.getElementById('cfg-provider').value;
+      const model = document.getElementById('cfg-model');
+      const baseurl = document.getElementById('cfg-baseurl');
+      const freeContainer = document.getElementById('cfg-openrouter-free-container');
+
+      if (p === 'openrouter') {
+        if (freeContainer) freeContainer.classList.remove('hidden');
+        if (!model.value || !model.value.includes('/')) {
+          model.value = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+        }
+        if (baseurl && !baseurl.value) baseurl.value = 'https://openrouter.ai/api/v1';
+        const select = document.getElementById('cfg-openrouter-model-select');
+        if (select) select.value = model.value;
+      } else {
+        if (freeContainer) freeContainer.classList.add('hidden');
+        if (p === 'gemini') {
+          model.value = 'gemini-2.5-flash';
+          if (baseurl) baseurl.value = '';
+        } else if (p === 'deepseek') {
+          model.value = 'deepseek-chat';
+          if (baseurl) baseurl.value = 'https://api.deepseek.com';
+        } else if (p === 'anthropic') {
+          model.value = 'claude-3-5-sonnet-20241022';
+          if (baseurl) baseurl.value = '';
+        } else if (p === 'openai') {
+          model.value = 'llama-3.3-70b-versatile';
+          if (baseurl && !baseurl.value) baseurl.value = 'https://api.groq.com/openai/v1';
+        }
+      }
+    }
+
+    function handleUserProviderChange() {
+      const p = document.getElementById('user-cfg-provider').value;
+      const model = document.getElementById('user-cfg-model');
+      const baseurl = document.getElementById('user-cfg-baseurl');
+      const freeContainer = document.getElementById('user-openrouter-free-container');
+
+      if (p === 'openrouter') {
+        if (freeContainer) freeContainer.classList.remove('hidden');
+        if (!model.value || !model.value.includes('/')) {
+          model.value = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+        }
+        if (baseurl && !baseurl.value) baseurl.value = 'https://openrouter.ai/api/v1';
+        const select = document.getElementById('user-openrouter-model-select');
+        if (select) select.value = model.value;
+      } else {
+        if (freeContainer) freeContainer.classList.add('hidden');
+        if (p === 'gemini') {
+          model.value = 'gemini-2.5-flash';
+          if (baseurl) baseurl.value = '';
+        } else if (p === 'deepseek') {
+          model.value = 'deepseek-chat';
+          if (baseurl) baseurl.value = 'https://api.deepseek.com';
+        } else if (p === 'anthropic') {
+          model.value = 'claude-3-5-sonnet-20241022';
+          if (baseurl) baseurl.value = '';
+        } else if (p === 'openai') {
+          model.value = 'llama-3.3-70b-versatile';
+          if (baseurl && !baseurl.value) baseurl.value = 'https://api.groq.com/openai/v1';
+        }
+      }
+    }
+
+    async function saveLLMConfig() {
+      const p = document.getElementById('cfg-provider').value;
+      const key = document.getElementById('cfg-apikey').value;
+      const model = document.getElementById('cfg-model').value;
+      const base = document.getElementById('cfg-baseurl').value;
+
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: p, api_key: key, model: model, base_url: base })
+        });
+        const d = await res.json();
+        if (d.success) alert('تم حفظ إعدادات الذكاء الاصطناعي بنجاح! 💾');
+      } catch (e) {
+        alert('خطأ: ' + e.message);
+      }
+    }
+
+    async function testLLMConnection() {
+      const p = document.getElementById('cfg-provider').value;
+      const key = document.getElementById('cfg-apikey').value;
+      const model = document.getElementById('cfg-model').value;
+      const base = document.getElementById('cfg-baseurl').value;
+
+      try {
+        const res = await fetch('/api/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: p, api_key: key, model: model, base_url: base })
+        });
+        const d = await res.json();
+        alert(d.success ? `نجح الاتصال بنجاح! الاستجابة: ${d.message}` : `فشل الاتصال: ${d.error}`);
+      } catch (e) {
+        alert('خطأ في الاتصال: ' + e.message);
+      }
+    }
+
+    // Startup Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Initialize User Authentication & Personal Config
+      initAuth();
+
+      // 2. Initialize 3D Virtual AI Office
+      try {
+        window.office3d = new Office3DEngine('office-3d-viewport');
+        console.log('[PriceZ Agents] 3D Office Engine initialized successfully');
+      } catch (err) {
+        console.error('[PriceZ Agents] 3D Engine Initialization Error:', err);
+      }
+
+      // 3. Initialize Real-Time WebSockets
+      initWebSocket();
+
+      // 4. Initialize Push Notifications State
+      if ('Notification' in window && Notification.permission === 'granted') {
+        updateNotificationBellUI(true);
+      } else {
+        updateNotificationBellUI(false);
+      }
+    });
+  </script>
+</body>
+</html>
